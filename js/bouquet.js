@@ -27,6 +27,12 @@
   // Stem goes from flower down to ribbon
   const STEM_BASE_Y = 5;
 
+  /* Scale factor: 1.0 = flower 100px on 480px display (SVG unit = 1.2px) */
+  const FLOWER_SCALE = 4.5;
+
+  /* Layout scale: shrink layout coords so bouquet fits compactly */
+  const LAYOUT_SCALE = 0.65;  // shrink all coords by 35%
+
   /* ============================================================
      PALETTES — 15 bảng màu, mỗi cái 16 màu
      ============================================================ */
@@ -559,6 +565,7 @@
 
       // Sort: biggest (center) last → on top
       const sorted = [...bouquet.flowers].sort((a, b) => a.size - b.size);
+      const LS = 0.7; // layout scale to fit in viewBox
 
       // Build SVG parts
       let parts = [];
@@ -579,12 +586,12 @@
       if (bouquet.leaves > 0) {
         for (let i = 0; i < bouquet.leaves; i++) {
           const ang = (i / bouquet.leaves) * Math.PI * 2 + 0.2;
-          const dist = 90 + (i % 3) * 15;
+          const dist = (90 + (i % 3) * 15) * LS;
           const lx = Math.cos(ang) * dist;
           const ly = Math.sin(ang) * dist * 0.6;
           const rot = ang * 180 / Math.PI + 90 + (i % 3 - 1) * 25;
           const leaf = LEAF_TYPES[i % LEAF_TYPES.length];
-          parts.push(`<g transform="translate(${lx},${ly}) rotate(${rot}) scale(1.3)">
+          parts.push(`<g transform="translate(${lx},${ly}) rotate(${rot}) scale(${LS * 1.3})">
             <path d="${leaf.d}" fill="${leaf.fill}" opacity="0.82"/>
           </g>`);
         }
@@ -595,10 +602,10 @@
         const stemLen = Math.abs(f.y); // distance from flower to ribbon
         if (stemLen > 5) {
           const stemColor = '#5a8a5a';
-          // stem: line from (f.x, f.y) down to (f.x*0.85, 0)
           const tx = f.x * 0.82;
-          parts.push(`<line x1="${f.x}" y1="${f.y}" x2="${tx}" y2="2"
-            stroke="${stemColor}" stroke-width="${Math.min(3 + f.size * 1.5, 8)}" opacity="0.7"
+          const sw = Math.min(3 + f.size * 1.5 * LS, 8);
+          parts.push(`<line x1="${f.x * LS}" y1="${f.y * LS}" x2="${tx * LS}" y2="${2 * LS}"
+            stroke="${stemColor}" stroke-width="${sw}" opacity="0.7"
             stroke-linecap="round"/>`);
         }
       }
@@ -606,20 +613,20 @@
       // 4. Flowers (sorted by size: biggest last → on top)
       for (const f of sorted) {
         const color = c[f.colorIdx % c.length];
-        const scale = f.size * 3.0;  // 3.0x → ~240-360px flower on 520px screen
+        const scale = f.size * FLOWER_SCALE;
         const ft = FLOWER_TYPES[f.type] || FLOWER_TYPES.rose;
         const flowerSvg = renderFlowerSVG(ft, color, c);
-        parts.push(`<g transform="translate(${f.x},${f.y}) scale(${scale}) rotate(${f.rotation})"
+        parts.push(`<g transform="translate(${f.x * LS},${f.y * LS}) scale(${scale}) rotate(${f.rotation})"
           style="filter:url(#gs${bouquet.id})">
           <g transform="translate(-50,-50)">${flowerSvg}</g>
         </g>`);
       }
 
       // 5. Ribbon at y = 0
-      parts.push(renderRibbon(ribbonConf, c));
+      parts.push(renderRibbon(ribbonConf, c, LS));
 
       // 6. Small bow decoration above ribbon
-      parts.push(renderBow(ribbonConf));
+      parts.push(renderBow(ribbonConf, LS));
 
       return `<svg viewBox="-200 -200 400 400" xmlns="http://www.w3.org/2000/svg"
         style="width:100%;height:auto;min-height:520px;display:block;
@@ -706,32 +713,33 @@
   /* ============================================================
      RENDER RIBBON
      ============================================================ */
-  function renderRibbon(conf, palette) {
+  function renderRibbon(conf, palette, LS) {
+    const s = LS; // scale
     // Main bow wrapping around stems at y=0
     let svg = `<g class="bouquet-ribbon">`;
 
     // Shadow under ribbon
-    svg += `<ellipse cx="0" cy="4" rx="38" ry="12" fill="${conf.dark}" opacity="0.3"/>`;
+    svg += `<ellipse cx="0" cy="${4 * s}" rx="${38 * s}" ry="${12 * s}" fill="${conf.dark}" opacity="0.3"/>`;
 
     // Main wrap band
-    svg += `<rect x="-40" y="-8" width="80" height="16" rx="6"
+    svg += `<rect x="${-40 * s}" y="${-8 * s}" width="${80 * s}" height="${16 * s}" rx="${6 * s}"
       fill="${conf.bg}" opacity="0.95"/>`;
 
     // Highlight on top
-    svg += `<rect x="-38" y="-7" width="76" height="5" rx="3"
+    svg += `<rect x="${-38 * s}" y="${-7 * s}" width="${76 * s}" height="${5 * s}" rx="${3 * s}"
       fill="${conf.light}" opacity="0.4"/>`;
 
     // Ribbon tail left
-    svg += `<path d="M-12,4 C-18,8 -25,20 -30,40 C-25,42 -18,35 -12,8 Z"
+    svg += `<path d="M${-12 * s},${4 * s} C${-18 * s},${8 * s} ${-25 * s},${20 * s} ${-30 * s},${40 * s} C${-25 * s},${42 * s} ${-18 * s},${35 * s} ${-12 * s},${8 * s} Z"
       fill="${conf.bg}" opacity="0.9"/>`;
-    svg += `<path d="M-10,5 C-16,10 -20,18 -22,28"
-      stroke="${conf.dark}" stroke-width="1" fill="none" opacity="0.4"/>`;
+    svg += `<path d="M${-10 * s},${5 * s} C${-16 * s},${10 * s} ${-20 * s},${18 * s} ${-22 * s},${28 * s}"
+      stroke="${conf.dark}" stroke-width="${1 * s}" fill="none" opacity="0.4"/>`;
 
     // Ribbon tail right
-    svg += `<path d="M12,4 C18,8 25,20 30,40 C25,42 18,35 12,8 Z"
+    svg += `<path d="M${12 * s},${4 * s} C${18 * s},${8 * s} ${25 * s},${20 * s} ${30 * s},${40 * s} C${25 * s},${42 * s} ${18 * s},${35 * s} ${12 * s},${8 * s} Z"
       fill="${conf.bg}" opacity="0.9"/>`;
-    svg += `<path d="M10,5 C16,10 20,18 22,28"
-      stroke="${conf.dark}" stroke-width="1" fill="none" opacity="0.4"/>`;
+    svg += `<path d="M${10 * s},${5 * s} C${16 * s},${10 * s} ${20 * s},${18 * s} ${22 * s},${28 * s}"
+      stroke="${conf.dark}" stroke-width="${1 * s}" fill="none" opacity="0.4"/>`;
 
     svg += `</g>`;
     return svg;
@@ -740,21 +748,22 @@
   /* ============================================================
      RENDER BOW (decorative bow on top)
      ============================================================ */
-  function renderBow(conf) {
+  function renderBow(conf, LS) {
+    const s = LS;
     let svg = `<g class="bouquet-bow">`;
     // Left loop
-    svg += `<ellipse cx="-18" cy="-12" rx="16" ry="10"
-      fill="${conf.accent}" transform="rotate(-20,-18,-12)" opacity="0.85"/>`;
+    svg += `<ellipse cx="${-18 * s}" cy="${-12 * s}" rx="${16 * s}" ry="${10 * s}"
+      fill="${conf.accent}" transform="rotate(${-20 * s},${-18 * s},${-12 * s})" opacity="0.85"/>`;
     // Right loop
-    svg += `<ellipse cx="18" cy="-12" rx="16" ry="10"
-      fill="${conf.accent}" transform="rotate(20,18,-12)" opacity="0.85"/>`;
+    svg += `<ellipse cx="${18 * s}" cy="${-12 * s}" rx="${16 * s}" ry="${10 * s}"
+      fill="${conf.accent}" transform="rotate(${20 * s},${18 * s},${-12 * s})" opacity="0.85"/>`;
     // Knot
-    svg += `<circle cx="0" cy="-6" r="7" fill="${conf.dark}" opacity="0.9"/>`;
-    svg += `<circle cx="0" cy="-7" r="5" fill="${conf.bg}" opacity="0.7"/>`;
+    svg += `<circle cx="0" cy="${-6 * s}" r="${7 * s}" fill="${conf.dark}" opacity="0.9"/>`;
+    svg += `<circle cx="0" cy="${-7 * s}" r="${5 * s}" fill="${conf.bg}" opacity="0.7"/>`;
     // Top tails
-    svg += `<path d="M-5,-4 C-10,-15 -16,-30 -10,-42 C-4,-36 -2,-20 0,-6 Z"
+    svg += `<path d="M${-5 * s},${-4 * s} C${-10 * s},${-15 * s} ${-16 * s},${-30 * s} ${-10 * s},${-42 * s} C${-4 * s},${-36 * s} ${-2 * s},${-20 * s} 0,${-6 * s} Z"
       fill="${conf.accent}" opacity="0.75"/>`;
-    svg += `<path d="M5,-4 C10,-15 16,-30 10,-42 C4,-36 2,-20 0,-6 Z"
+    svg += `<path d="M${5 * s},${-4 * s} C${10 * s},${-15 * s} ${16 * s},${-30 * s} ${10 * s},${-42 * s} C${4 * s},${-36 * s} ${2 * s},${-20 * s} 0,${-6 * s} Z"
       fill="${conf.accent}" opacity="0.75"/>`;
     svg += `</g>`;
     return svg;
