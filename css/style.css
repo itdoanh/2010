@@ -1,0 +1,821 @@
+/* ==========================================================================
+   LỄ HỘI 20/10 - STYLE.CSS
+   Toàn bộ 2D, gradient giấy, hoa nền, animation mượt.
+   Tông hồng-ngà-vàng, không dùng WebGL / 3D.
+   ========================================================================== */
+
+:root {
+  --col-pink-deep: #e85a8c;
+  --col-pink-soft: #f9b9d0;
+  --col-pink-light: #ffe4ee;
+  --col-gold: #f4d35e;
+  --col-cream: #fff8f0;
+  --col-paper: #ffeede;
+  --col-text: #5a3d4e;
+  --col-text-light: #8a6e7d;
+  --col-rose: #d4627d;
+
+  --font-display: 'Cormorant Garamond', 'Be Vietnam Pro', serif;
+  --font-script: 'Dancing Script', cursive;
+  --font-body: 'Be Vietnam Pro', system-ui, sans-serif;
+
+  --transition-smooth: 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================================
+   RESET
+   ============================================================ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; min-height: 100%; overflow-x: hidden; }
+html { font-size: 16px; scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  color: var(--col-text);
+  background: #fff8f0;
+  line-height: 1.6;
+  position: relative;
+  min-height: 100vh;
+}
+
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+
+input { font-family: inherit; }
+
+/* ============================================================
+   LỚP NỀN GRADIENT GIẤY (CỐ ĐỊNH, Z-INDEX THẤP NHẤT)
+   ============================================================ */
+.paper-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  background:
+    radial-gradient(ellipse at top left, #fff0e6 0%, transparent 50%),
+    radial-gradient(ellipse at bottom right, #ffe4ee 0%, transparent 55%),
+    linear-gradient(135deg, #fff8f0 0%, #fff0e0 25%, #ffeede 50%, #ffe4ee 75%, #fff0e6 100%);
+}
+
+/* Paper texture noise via SVG filter (rất nhẹ) */
+.paper-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.9 0 0 0 0 0.8 0 0 0 0 0.7 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.4;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+/* ============================================================
+   LỚP HOA NỀN TRANG TRÍ GÓC
+   ============================================================ */
+.bg-flowers {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.bg-flowers::before,
+.bg-flowers::after {
+  content: "";
+  position: absolute;
+  width: 380px;
+  height: 380px;
+  background-repeat: no-repeat;
+  background-size: contain;
+  opacity: 0.35;
+}
+
+.bg-flowers::before {
+  top: -60px;
+  left: -60px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%23f9b9d0'%3E%3Ccircle cx='40' cy='40' r='38'/%3E%3Ccircle cx='80' cy='60' r='30'/%3E%3Ccircle cx='110' cy='30' r='28'/%3E%3Ccircle cx='60' cy='90' r='25'/%3E%3C/g%3E%3Cg fill='%23e85a8c' opacity='0.6'%3E%3Ccircle cx='40' cy='40' r='15'/%3E%3Ccircle cx='80' cy='60' r='12'/%3E%3C/g%3E%3C/svg%3E");
+  transform: rotate(-25deg);
+  animation: bgFlowerFloat 12s ease-in-out infinite;
+}
+
+.bg-flowers::after {
+  bottom: -80px;
+  right: -80px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%23f4d35e'%3E%3Cellipse cx='100' cy='40' rx='14' ry='32' transform='rotate(20 100 40)'/%3E%3Cellipse cx='100' cy='40' rx='14' ry='32' transform='rotate(70 100 40)'/%3E%3Cellipse cx='100' cy='40' rx='14' ry='32' transform='rotate(130 100 40)'/%3E%3Cellipse cx='100' cy='40' rx='14' ry='32' transform='rotate(170 100 40)'/%3E%3C/g%3E%3Cg fill='%23e85a8c'%3E%3Ccircle cx='100' cy='40' r='10'/%3E%3C/g%3E%3C/svg%3E");
+  opacity: 0.4;
+  animation: bgFlowerFloat 15s ease-in-out infinite reverse;
+}
+
+.bg-flowers > .extra-flower {
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+@keyframes bgFlowerFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(5deg); }
+}
+
+/* ============================================================
+   LỚP CÁNH HOA RƠI (PETALS LAYER)
+   ============================================================ */
+#petals-layer {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.petal {
+  position: absolute;
+  top: -40px;
+  width: 26px;
+  height: 26px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: petalFall linear infinite;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
+}
+
+@keyframes petalFall {
+  0% {
+    transform: translate3d(0, -50px, 0) rotate(0deg);
+    opacity: 0;
+  }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% {
+    transform: translate3d(var(--drift, 80px), 110vh, 0) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* SVG cánh hoa 6 loại */
+.petal-rose { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M20 5 C15 5 10 10 10 18 C10 28 20 35 20 35 C20 35 30 28 30 18 C30 10 25 5 20 5 Z' fill='%23e85a8c'/%3E%3C/svg%3E"); }
+.petal-tulip { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M20 6 C12 6 8 14 10 24 C12 32 18 36 20 36 C22 36 28 32 30 24 C32 14 28 6 20 6 Z' fill='%23ff6b6b'/%3E%3C/svg%3E"); }
+.petal-peach { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M20 5 C14 5 10 10 12 18 C13 28 20 36 20 36 C20 36 27 28 28 18 C30 10 26 5 20 5 Z' fill='%23ffb7c5'/%3E%3C/svg%3E"); }
+.petal-gold { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M20 5 C15 5 10 10 10 18 C10 28 20 35 20 35 C20 35 30 28 30 18 C30 10 25 5 20 5 Z' fill='%23f4d35e'/%3E%3C/svg%3E"); }
+.petal-white { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M20 5 C14 5 10 10 12 18 C13 28 20 36 20 36 C20 36 27 28 28 18 C30 10 26 5 20 5 Z' fill='%23fff'/%3E%3C/svg%3E"); }
+.petal-lavender { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M20 5 C15 5 10 10 10 18 C10 28 20 35 20 35 C20 35 30 28 30 18 C30 10 25 5 20 5 Z' fill='%23c5a3ff'/%3E%3C/svg%3E"); }
+
+/* ============================================================
+   LỚP SPARKLE TỎA SÁNG
+   ============================================================ */
+#sparkles-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.sparkle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: radial-gradient(circle, #fff 0%, #f4d35e 60%, transparent 100%);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: sparklePulse 2.5s ease-in-out infinite;
+}
+
+@keyframes sparklePulse {
+  0%, 100% { opacity: 0; transform: scale(0); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* ============================================================
+   TRANG - STAGE SCREEN
+   ============================================================ */
+.stage-screen {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  z-index: 5;
+}
+.stage-screen.active {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 10 !important;
+  animation: stageFadeIn var(--transition-smooth);
+  position: fixed !important;
+}
+
+@keyframes stageFadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.stage-screen.exiting {
+  display: flex !important;
+  visibility: visible !important;
+  position: fixed !important;
+  z-index: 5 !important;
+  animation: stageFadeOut var(--transition-smooth) forwards;
+}
+@keyframes stageFadeOut {
+  to { opacity: 0; transform: scale(1.02); }
+}
+
+/* Inactive stages */
+.stage-screen:not(.active) {
+  display: none !important;
+  visibility: hidden !important;
+  position: absolute !important;
+}
+
+/* ============================================================
+   TRANG 1: SPLASH
+   ============================================================ */
+#stage-1 {
+  background:
+    radial-gradient(circle at 50% 40%, #ffe4ee 0%, transparent 60%),
+    radial-gradient(circle at 30% 70%, #fff0e0 0%, transparent 50%);
+}
+
+.splash-frame {
+  text-align: center;
+  padding: 3rem 2.5rem;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 24px;
+  box-shadow:
+    0 20px 60px rgba(232, 90, 140, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(244, 211, 94, 0.3);
+  max-width: 480px;
+  width: 100%;
+  animation: splashFloat 4s ease-in-out infinite;
+}
+
+@keyframes splashFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.splash-ribbon-top {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--col-pink-deep);
+  letter-spacing: 0.2em;
+  margin-bottom: 0.8rem;
+  font-weight: 600;
+}
+
+.splash-date {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 4rem;
+  color: var(--col-pink-deep);
+  margin: 0.5rem 0;
+  letter-spacing: 0.08em;
+  text-shadow: 0 2px 8px rgba(232, 90, 140, 0.25);
+  line-height: 1;
+}
+
+.splash-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  justify-content: center;
+  margin: 1rem auto 0.6rem;
+}
+.divider-line {
+  display: inline-block;
+  width: 50px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--col-pink-deep), transparent);
+}
+.divider-flower {
+  font-size: 1.2rem;
+  animation: dividerSpin 8s linear infinite;
+}
+@keyframes dividerSpin {
+  to { transform: rotate(360deg); }
+}
+
+.splash-subtitle {
+  font-family: var(--font-script);
+  font-size: 1.5rem;
+  color: var(--col-rose);
+  margin-bottom: 1.2rem;
+  font-style: italic;
+}
+
+.splash-loader {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: center;
+}
+.splash-loader span {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--col-pink-deep);
+  animation: loaderBounce 1.4s ease-in-out infinite;
+}
+.splash-loader span:nth-child(2) { animation-delay: 0.18s; background: var(--col-gold); }
+.splash-loader span:nth-child(3) { animation-delay: 0.36s; background: var(--col-rose); }
+
+@keyframes loaderBounce {
+  0%, 80%, 100% { transform: scale(0.5); opacity: 0.4; }
+  40% { transform: scale(1.2); opacity: 1; }
+}
+
+/* ============================================================
+   TRANG 2: LÁ THƯ
+   ============================================================ */
+.letter-wrap {
+  width: 100%;
+  max-width: 640px;
+  animation: letterRise 0.8s var(--transition-smooth);
+}
+@keyframes letterRise {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.letter-paper {
+  position: relative;
+  padding: 3rem 2.8rem;
+  background: linear-gradient(135deg, #fff8f0 0%, #fff0e0 100%);
+  border-radius: 4px;
+  box-shadow:
+    0 25px 60px rgba(90, 61, 78, 0.18),
+    0 0 0 1px rgba(212, 98, 125, 0.1),
+    inset 0 0 80px rgba(232, 90, 140, 0.04);
+  border: 1px solid rgba(212, 98, 125, 0.15);
+  overflow: hidden;
+}
+
+.letter-paper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.85 0 0 0 0 0.75 0 0 0 0 0.65 0 0 0 0.12 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.55;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+}
+
+.letter-paper > * { position: relative; z-index: 1; }
+
+.letter-corner {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  border: 2px solid var(--col-pink-deep);
+  opacity: 0.5;
+}
+.corner-tl { top: 16px; left: 16px; border-right: none; border-bottom: none; }
+.corner-tr { top: 16px; right: 16px; border-left: none; border-bottom: none; }
+.corner-bl { bottom: 16px; left: 16px; border-right: none; border-top: none; }
+.corner-br { bottom: 16px; right: 16px; border-left: none; border-top: none; }
+
+.letter-stamp {
+  position: absolute;
+  top: 24px;
+  right: 28px;
+  font-size: 2.2rem;
+  transform: rotate(15deg);
+  opacity: 0.85;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.1));
+}
+
+.letter-dear {
+  font-family: var(--font-script);
+  font-size: 1.7rem;
+  color: var(--col-pink-deep);
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+.letter-line {
+  margin-bottom: 1.2rem;
+  font-size: 1.025rem;
+  line-height: 1.75;
+  color: var(--col-text);
+}
+
+.letter-line strong { color: var(--col-pink-deep); font-weight: 600; }
+.letter-line em { font-style: italic; color: var(--col-rose); }
+
+.highlight-line {
+  margin-top: 1.5rem;
+  padding: 0.8rem 1rem;
+  background: rgba(244, 211, 94, 0.18);
+  border-left: 3px solid var(--col-gold);
+  border-radius: 4px;
+  font-style: italic;
+}
+
+.btn-letter {
+  margin-top: 1.5rem;
+  padding: 0.85rem 2.2rem;
+  background: linear-gradient(135deg, var(--col-pink-deep), var(--col-rose));
+  color: white;
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  box-shadow: 0 8px 22px rgba(232, 90, 140, 0.35);
+  transition: all 0.3s ease;
+}
+.btn-letter:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(232, 90, 140, 0.45);
+}
+.btn-arrow {
+  display: inline-block;
+  transition: transform 0.3s ease;
+}
+.btn-letter:hover .btn-arrow { transform: translateX(4px); }
+
+/* ============================================================
+   TRANG 3: BÀI CHÚC CHÍNH
+   ============================================================ */
+#stage-3 {
+  background:
+    radial-gradient(ellipse at top, rgba(255, 228, 238, 0.6) 0%, transparent 70%);
+  align-items: flex-start;
+  overflow-y: auto;
+  padding: 3rem 1.5rem 3rem;
+}
+
+.wish-wrapper {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2.5rem 2rem;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 16px;
+  border: 1px solid rgba(244, 211, 94, 0.3);
+  box-shadow: 0 15px 40px rgba(232, 90, 140, 0.12);
+}
+
+.wish-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px dashed rgba(232, 90, 140, 0.3);
+}
+
+.header-deco {
+  display: inline-block;
+  font-size: 1.5rem;
+  vertical-align: middle;
+  margin: 0 0.5rem;
+  animation: headerDecoBounce 2.5s ease-in-out infinite;
+}
+.header-deco.left { animation-delay: 0.2s; }
+@keyframes headerDecoBounce {
+  0%, 100% { transform: translateY(0) rotate(-5deg); }
+  50% { transform: translateY(-5px) rotate(5deg); }
+}
+
+.wish-main-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 2.6rem;
+  color: var(--col-pink-deep);
+  margin: 0.5rem 0 0.6rem;
+  letter-spacing: 0.02em;
+}
+
+.wish-main-sub {
+  font-family: var(--font-script);
+  font-size: 1.4rem;
+  color: var(--col-rose);
+  font-style: italic;
+}
+
+.wish-article { margin-top: 2rem; }
+
+.wish-paragraph {
+  font-size: 1.05rem;
+  line-height: 1.85;
+  color: var(--col-text);
+  margin-bottom: 1.4rem;
+  text-align: justify;
+  hyphens: auto;
+}
+.wish-paragraph strong { color: var(--col-pink-deep); font-weight: 600; }
+.wish-paragraph em { font-style: italic; color: var(--col-rose); }
+
+.wish-quote {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.25rem;
+  line-height: 1.6;
+  color: var(--col-pink-deep);
+  margin: 2rem 0;
+  padding: 1.5rem 1.8rem;
+  border-left: 4px solid var(--col-gold);
+  background: linear-gradient(90deg, rgba(244, 211, 94, 0.15), rgba(244, 211, 94, 0.05));
+  border-radius: 0 8px 8px 0;
+  position: relative;
+}
+.wish-quote::before {
+  content: """;
+  font-family: var(--font-display);
+  font-size: 4rem;
+  position: absolute;
+  top: -10px;
+  left: 8px;
+  opacity: 0.18;
+  color: var(--col-pink-deep);
+  line-height: 1;
+}
+
+.wish-paragraph.signature {
+  text-align: center;
+  margin-top: 2.5rem;
+  font-family: var(--font-script);
+  font-size: 1.3rem;
+  color: var(--col-rose);
+}
+.brand-name {
+  color: var(--col-pink-deep);
+  font-weight: 700;
+  font-style: normal;
+}
+
+.btn-final {
+  margin: 2rem auto 0;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 1.05rem 2.4rem;
+  background: linear-gradient(135deg, var(--col-gold) 0%, #ffd166 50%, var(--col-pink-deep) 100%);
+  background-size: 200% 200%;
+  color: white;
+  border-radius: 50px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 0 12px 30px rgba(232, 90, 140, 0.4);
+  transition: all 0.4s ease;
+  animation: gradientShift 3s ease infinite;
+}
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.btn-final:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 18px 40px rgba(232, 90, 140, 0.5);
+}
+.btn-final-icon { font-size: 1.4rem; }
+
+/* ============================================================
+   TRANG 4: TRANG KẾT - BÓ HOA
+   ============================================================ */
+#stage-4 {
+  background:
+    radial-gradient(ellipse at center, rgba(255, 228, 238, 0.7) 0%, transparent 65%),
+    radial-gradient(ellipse at bottom, rgba(244, 211, 94, 0.2) 0%, transparent 60%);
+  align-items: flex-start;
+  overflow-y: auto;
+  padding: 2rem 1.5rem 2.5rem;
+}
+
+.final-stage {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: center;
+  position: relative;
+}
+
+.final-bg-glow {
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(244, 211, 94, 0.4) 0%, transparent 70%);
+  filter: blur(60px);
+  z-index: -1;
+  pointer-events: none;
+  animation: glowPulse 4s ease-in-out infinite;
+}
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.6; transform: translateX(-50%) scale(1); }
+  50% { opacity: 1; transform: translateX(-50%) scale(1.1); }
+}
+
+.final-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 2.4rem;
+  color: var(--col-pink-deep);
+  margin: 0.5rem 0 0.4rem;
+}
+.final-subtitle {
+  font-family: var(--font-script);
+  font-size: 1.3rem;
+  color: var(--col-rose);
+  margin-bottom: 1.5rem;
+  font-style: italic;
+}
+.final-subtitle strong {
+  background: linear-gradient(135deg, var(--col-pink-deep), var(--col-gold));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+
+/* Khung bó hoa SVG */
+.bouquet-display {
+  width: 480px;
+  max-width: 100%;
+  height: 520px;
+  margin: 0 auto 1.5rem;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bouquet-loader {
+  font-family: var(--font-script);
+  color: var(--col-pink-deep);
+  font-size: 1.4rem;
+  font-style: italic;
+  animation: loaderBlink 1.2s ease-in-out infinite;
+}
+@keyframes loaderBlink {
+  50% { opacity: 0.5; }
+}
+
+#bouquet-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 15px 35px rgba(232, 90, 140, 0.25));
+  animation: bouquetAppear 0.8s var(--transition-smooth);
+}
+@keyframes bouquetAppear {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* HOVER từng bông hoa */
+.bouquet-flower {
+  transition: transform 0.4s ease, filter 0.4s ease;
+  transform-origin: center;
+  cursor: pointer;
+}
+.bouquet-flower:hover {
+  transform: scale(1.15);
+  filter: brightness(1.1) drop-shadow(0 0 8px rgba(244, 211, 94, 0.7));
+}
+
+/* Khung cá nhân hóa */
+.final-message-card {
+  max-width: 560px;
+  margin: 1.5rem auto 0;
+  padding: 1.8rem 1.6rem 1.5rem;
+  background: linear-gradient(135deg, rgba(255, 248, 240, 0.92), rgba(255, 228, 238, 0.85));
+  border: 2px solid var(--col-gold);
+  border-radius: 16px;
+  box-shadow: 0 12px 30px rgba(232, 90, 140, 0.18);
+  position: relative;
+}
+
+.final-message-card::before {
+  content: "";
+  position: absolute;
+  top: -8px; left: -8px; right: -8px; bottom: -8px;
+  border: 1px dashed rgba(232, 90, 140, 0.3);
+  border-radius: 18px;
+  pointer-events: none;
+}
+
+.final-message-label {
+  font-family: var(--font-script);
+  color: var(--col-rose);
+  font-size: 1.15rem;
+  font-style: italic;
+  margin-bottom: 0.4rem;
+}
+
+.recipient-input {
+  width: 100%;
+  padding: 0.85rem 1.1rem;
+  font-size: 1.25rem;
+  font-family: var(--font-display);
+  color: var(--col-pink-deep);
+  text-align: center;
+  background: rgba(255, 255, 255, 0.7);
+  border: 2px solid rgba(244, 211, 94, 0.5);
+  border-radius: 50px;
+  outline: none;
+  transition: all 0.3s ease;
+  font-weight: 600;
+}
+.recipient-input:focus {
+  border-color: var(--col-pink-deep);
+  background: white;
+  box-shadow: 0 0 0 4px rgba(232, 90, 140, 0.15);
+}
+
+.final-final-msg {
+  margin-top: 1.4rem;
+  font-family: var(--font-script);
+  font-size: 1.3rem;
+  color: var(--col-text);
+  line-height: 1.5;
+}
+#recipient-display {
+  color: var(--col-pink-deep);
+  font-weight: 700;
+  border-bottom: 2px dotted var(--col-pink-deep);
+  padding: 0 4px;
+  transition: all 0.4s ease;
+}
+
+.final-actions {
+  display: flex;
+  gap: 0.7rem;
+  justify-content: center;
+  margin-top: 1.4rem;
+  flex-wrap: wrap;
+}
+
+.btn-shuffle, .btn-restart {
+  padding: 0.7rem 1.2rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 50px;
+  background: white;
+  color: var(--col-pink-deep);
+  border: 2px solid var(--col-pink-deep);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+}
+.btn-shuffle:hover, .btn-restart:hover {
+  background: var(--col-pink-deep);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(232, 90, 140, 0.3);
+}
+
+.final-footer {
+  margin-top: 1.8rem;
+  font-family: var(--font-script);
+  color: var(--col-text-light);
+  font-style: italic;
+  font-size: 1rem;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 640px) {
+  .splash-date { font-size: 3.2rem; }
+  .splash-subtitle { font-size: 1.2rem; }
+  .letter-paper { padding: 2rem 1.5rem; }
+  .letter-dear { font-size: 1.4rem; }
+  .wish-wrapper { padding: 1.5rem 1rem; }
+  .wish-main-title { font-size: 1.9rem; }
+  .wish-main-sub { font-size: 1.1rem; }
+  .wish-paragraph { font-size: 0.97rem; }
+  .final-title { font-size: 1.8rem; }
+  .bouquet-display { width: 340px; height: 340px; }
+  .final-message-card { padding: 1.3rem 1rem; }
+  .recipient-input { font-size: 1.05rem; padding: 0.7rem 0.8rem; }
+  .final-final-msg { font-size: 1.1rem; }
+}
+
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+  .petal { display: none; }
+}

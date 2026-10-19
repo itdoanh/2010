@@ -1,0 +1,89 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2026-10-20",
+  "totalBouquets": 365,
+
+  "palettes": [
+    {
+      "id": "spring-pink",
+      "name": "🌸 Hồng Xuân",
+      "colors": ["#ff85b3", "#ffafcc", "#ffcad4", "#ffd6e0", "#fbb1bd", "#f6a5c0", "#f48fb1", "#ec407a", "#d4627d", "#c2185b", "#fce4ec", "#ffd0e0", "#fbb8c8", "#ec407a", "#f06292", "#e91e63"]
+    },
+    {
+      "id": "royal-red",
+      "name": "🌹 Đỏ Hoàng Gia",
+      "colors": ["#d62828", "#b71c1c", "#a91d1d", "#c62828", "#8b0000", "#9b1b30", "#c1272d", "#a31621", "#c0392b", "#a1232b", "#7a0000", "#aa0000", "#bb2128", "#cc3030", "#dd4040", "#e04050"]
+    },
+    {
+      "id": "sunset",
+      "name": "🌅 Hoàng Hôn",
+      "colors": ["#ffb088", "#ff9558", "#ff7b39", "#f76a4d", "#ee5b50", "#ff6f61", "#fb8c4d", "#f4a261", "#ff9f68", "#ff8c61", "#ffb86c", "#ffc97b", "#ffa07a", "#fa8072", "#f08080", "#cd5c5c"]
+    },
+    {
+      "id": "lavender-dream",
+      "name": "💜 Mộng Lavender",
+      "colors": ["#c5a3ff", "#b39dff", "#9f86ff", "#a18cd1", "#a594c7", "#b8a4d8", "#cca9dd", "#bd92d8", "#a18cd1", "#9c89c2", "#8e7cc3", "#7b68a6", "#6a5acd", "#9370db", "#ba86d6", "#cea7d8"]
+    },
+    {
+      "id": "lemon-yellow",
+      "name": "🌻 Vàng Lemon",
+      "colors": ["#ffd166", "#ffe066", "#ffeb3d", "#fdd835", "#ffcd3c", "#f9b208", "#f9c80e", "#f9c846", "#fcde70", "#ffeb88", "#ffdf80", "#ffe874", "#fff176", "#fff176", "#fdd835", "#fbc02d"]
+    },
+    {
+      "id": "rose-pastel",
+      "name": "🌷 Pastel Rose",
+      "colors": ["#f9b9d0", "#ffd9e4", "#ffd6e0", "#ffc9d6", "#fbc4d4", "#f7b5c5", "#f4a7be", "#f8b4cb", "#f9c3d8", "#f7c6da", "#f6c5d8", "#f6d0dd", "#ffafcc", "#ff85a1", "#ffd1dc", "#fed4e2"]
+    },
+    {
+      "id": "tulip-rainbow",
+      "name": "🌷 Cầu Vồng",
+      "colors": ["#ff6b6b", "#ffd166", "#a786ff", "#4ecdc4", "#ff9a5a", "#4dff88", "#ff85b3", "#66d9ff", "#ffa07a", "#f4d35e", "#c5a3ff", "#ff85b3", "#ffeb3d", "#5e9cff", "#ff8fab", "#a3e4a3"]
+    },
+    {
+      "id": "cherry-blossom",
+      "name": "🌸 Hoa Anh Đào",
+      "colors": ["#ffb7c5", "#ffc8d3", "#ffd1dc", "#fbb1c5", "#f8b3c8", "#f9bccd", "#f8b4cb", "#ffc0d0", "#ffb1bf", "#f8a5b9", "#f7afc2", "#ffb3c6", "#f9a8b8", "#fbafc1", "#fab5c2", "#f5a6b8"]
+    },
+    {
+      "id": "warm-peach",
+      "name": "🍑 Đào Ấm",
+      "colors": ["#ffcab1", "#ffb088", "#ffa07a", "#ffb59b", "#ffa78f", "#ffc4a3", "#f8ad9d", "#fcb1a3", "#ffbfa8", "#f7a98f", "#ffae8b", "#f7b69b", "#f4a582", "#f6a890", "#f7c1a4", "#f8b9a5"]
+    },
+    {
+      "id": "ocean-breeze",
+      "name": "🌊 Biển Mát",
+      "colors": ["#66d9ff", "#5ec8ff", "#4dccff", "#5ec8d8", "#66c2a5", "#5fb8b8", "#5fc1e0", "#5cb8e0", "#5ed4d4", "#5dd5d5", "#84ceeb", "#a1d8e7", "#94d2bd", "#83c5be", "#73c2c6", "#66b3c2"]
+    },
+    {
+      "id": "moonlit-white",
+      "name": "🌙 Trăng Trắng",
+      "colors": ["#ffffff", "#fbfbfb", "#f8f8f8", "#fff5f8", "#fff0e0", "#ffe8e0", "#fce8e8", "#fdf3f3", "#fef7f7", "#fff5f3", "#fff9e8", "#fff9f3", "#f9f0e8", "#fff8e8", "#fff5e8", "#fff8f0"]
+    },
+    {
+      "id": "vintage-burgundy",
+      "name": "🍷 Burgundy Cổ Điển",
+      "colors": ["#800020", "#8b1a3c", "#a02244", "#6c1b30", "#9b2d4d", "#7d2640", "#7a1e35", "#8e2342", "#7c2238", "#85193a", "#7a2238", "#9c2542", "#851a3d", "#7a1c3a", "#8c1e3d", "#7d2540"]
+    },
+    {
+      "id": "garden-mix",
+      "name": "🌼 Vườn Xanh",
+      "colors": ["#ff85b3", "#ffd166", "#a3e4a3", "#a786ff", "#ff9a5a", "#c5a3ff", "#f48fb1", "#9fde9f", "#85d1ce", "#5fc1e0", "#fbb8c8", "#ffcd3c", "#9eda9f", "#c9b1d6", "#f7a98f", "#66d9ff"]
+    },
+    {
+      "id": "candy-pop",
+      "name": "🍭 Kẹo Ngọt",
+      "colors": ["#ff80ab", "#ff9ec7", "#ffafcc", "#ffd1dc", "#ff85b3", "#fbb8c8", "#ff9eb3", "#ffb3c6", "#ff7eb3", "#ffa0c0", "#ffaec8", "#ff9ec7", "#ff9dc1", "#f9b9d0", "#ff8fb1", "#ffaec5"]
+    },
+    {
+      "id": "rose-gold",
+      "name": "✨ Rose Gold",
+      "colors": ["#e8b4a0", "#f5c2a0", "#f0b89a", "#dfb1a0", "#e2a893", "#e6b7a8", "#dfa895", "#e8b4a0", "#e2b4a8", "#dba693", "#e9b6a0", "#dfa893", "#e6a993", "#dcab98", "#deb098", "#e7b29c"]
+    }
+  ],
+
+  "flowerTypes": ["rose", "tulip", "sunflower", "daisy", "peony", "lily", "orchid", "cherry", "lavender"],
+
+  "leafColors": ["#3aa55a", "#2e8b57", "#4caf50", "#6dbb6d", "#7cb342", "#558b2f", "#689f38"],
+
+  "ribbonStyles": ["silk", "satin", "velvet", "gold", "white", "rainbow"]
+}
