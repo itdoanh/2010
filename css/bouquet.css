@@ -1,0 +1,572 @@
+/* ==========================================================================
+   css/bouquet.css
+   ==========================================================================
+   Style riêng cho trang bó hoa nghệ thuật. Layout full screen, glassmorphism panel.
+   ========================================================================== */
+
+:root {
+  --bg-grad-1: #fff5f7;
+  --bg-grad-2: #fce7f3;
+  --bg-grad-3: #f3e8ff;
+  --primary: #db2777;
+  --primary-light: #fda4af;
+  --text: #1f2937;
+  --text-light: #6b7280;
+  --shadow: rgba(110, 30, 70, 0.14);
+}
+
+* { box-sizing: border-box; }
+* { -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background 0.6s ease;
+}
+
+body {
+  background: radial-gradient(circle at 55% 35%, var(--bg-grad-1) 0%, var(--bg-grad-2) 55%, var(--bg-grad-3) 100%);
+}
+
+.font-serif-luxury {
+  font-family: 'Cormorant Garamond', serif;
+}
+.font-handwriting {
+  font-family: 'Dancing Script', cursive;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.bouquet-header {
+  position: relative;
+  z-index: 5;
+  text-align: center;
+  padding: 1.2rem 1rem 0.5rem;
+}
+
+.back-btn {
+  position: absolute;
+  top: 1.2rem;
+  left: 1.2rem;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary);
+  border: 1px solid rgba(255,255,255,0.9);
+  box-shadow: 0 4px 12px rgba(110, 30, 70, 0.1);
+  transition: all 0.2s ease;
+}
+.back-btn:hover {
+  transform: translateY(-2px);
+  background: white;
+  box-shadow: 0 8px 18px rgba(110, 30, 70, 0.18);
+}
+
+.bouquet-header h1 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(1.5rem, 3.5vw, 2.5rem);
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 0.2rem;
+  letter-spacing: -0.02em;
+}
+
+.header-sub {
+  font-family: 'Dancing Script', cursive;
+  font-size: clamp(0.95rem, 2vw, 1.3rem);
+  color: var(--primary);
+  margin: 0;
+  font-weight: 600;
+}
+
+/* ============================================================
+   STAGE — SVG container full height
+   ============================================================ */
+.bouquet-stage {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 100px);
+  min-height: 600px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+#bouquet-svg {
+  width: 100%;
+  max-width: 780px;
+  height: 92%;
+  max-height: 880px;
+  display: block;
+  overflow: visible;
+  filter: drop-shadow(0 26px 42px rgba(88, 20, 52, 0.18));
+}
+
+/* ============================================================
+   FLOATING CARD (thiệp nổi)
+   ============================================================ */
+.bouquet-card-tag {
+  position: absolute;
+  bottom: 14%;
+  right: 6%;
+  max-width: 215px;
+  padding: 0.9rem 1.1rem 0.95rem;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(244, 114, 182, 0.4);
+  border-radius: 16px;
+  box-shadow: 0 14px 30px -6px rgba(80, 20, 50, 0.22);
+  z-index: 20;
+  animation: floatCard 5s ease-in-out infinite;
+  cursor: pointer;
+}
+.bouquet-card-tag:hover {
+  transform: scale(1.05) rotate(0deg);
+}
+
+.card-pin {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fbbf24;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.18);
+  margin-bottom: 0.45rem;
+}
+
+.card-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #db2777;
+  margin-bottom: 0.3rem;
+}
+
+.card-text {
+  font-family: 'Dancing Script', cursive;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+  line-height: 1.3;
+}
+
+@keyframes floatCard {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50% { transform: translateY(-6px) rotate(-2deg); }
+}
+
+/* ============================================================
+   ANIMATIONS CHO BÓ HOA
+   ============================================================ */
+@keyframes gentleBouquetSway {
+  0%, 100% { transform: rotate(-0.9deg); }
+  50% { transform: rotate(0.9deg); }
+}
+
+@keyframes flowerBreeze {
+  0%, 100% { transform: rotate(-2.2deg) scale(1); }
+  50% { transform: rotate(2.2deg) scale(1.02); }
+}
+
+@keyframes twinkleStar {
+  0%, 100% { opacity: 0.25; transform: scale(0.7); }
+  50% { opacity: 1; transform: scale(1.35); }
+}
+
+@keyframes bloomBounce {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.24) rotate(6deg); }
+  70% { transform: scale(0.95) rotate(-3deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+#bouquet-sway-wrapper {
+  transform-box: fill-box;
+  transform-origin: 50% 90%;
+}
+.breeze-active #bouquet-sway-wrapper {
+  animation: gentleBouquetSway 6s ease-in-out infinite;
+}
+.breeze-active .flower-anim,
+.breeze-active .leaf-anim,
+.breeze-active .fairy-light-bulb {
+  transform-box: fill-box;
+  transform-origin: center center;
+}
+.breeze-active .flower-anim { animation: flowerBreeze 4.5s ease-in-out infinite; }
+.breeze-active .leaf-anim { animation: flowerBreeze 5.5s ease-in-out infinite reverse; }
+
+.flower-hit { cursor: pointer; }
+.flower-hit:hover .flower-anim {
+  filter: brightness(1.08);
+  transform: scale(1.07);
+  transition: transform 0.25s ease, filter 0.25s ease;
+}
+
+.bloom-active { animation: bloomBounce 0.65s cubic-bezier(0.34,1.56,0.64,1) forwards !important; }
+
+.fairy-light-bulb {
+  animation: twinkleStar 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ============================================================
+   CANVAS EFFECT
+   ============================================================ */
+.fx-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 30;
+}
+
+/* ============================================================
+   CONFIG FAB (Floating Action Button)
+   ============================================================ */
+.config-fab {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.85rem 1rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ec4899, #be185d);
+  color: white;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 12px 28px rgba(190, 24, 93, 0.4), 0 0 0 4px rgba(236, 72, 153, 0.15);
+  transition: right 0.35s ease, transform 0.25s ease, box-shadow 0.25s ease, bottom 0.25s ease;
+}
+.config-panel:not(.hidden) ~ .config-fab,
+body:has(.config-panel:not(.hidden)) .config-fab {
+  right: calc(380px + 2rem);
+}
+@media (max-width: 768px) {
+  .config-panel:not(.hidden) ~ .config-fab,
+  body:has(.config-panel:not(.hidden)) .config-fab {
+    right: 1rem;
+    bottom: 0.7rem;
+  }
+}
+.config-fab:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 16px 36px rgba(190, 24, 93, 0.5), 0 0 0 6px rgba(236, 72, 153, 0.2);
+}
+.config-fab svg { width: 22px; height: 22px; }
+.fab-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ============================================================
+   CONFIG PANEL (Glassmorphism, slide từ phải)
+   ============================================================ */
+.config-panel {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  bottom: 1rem;
+  width: 380px;
+  max-width: calc(100vw - 2rem);
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 24px;
+  box-shadow: 0 24px 50px -15px rgba(110, 30, 70, 0.18);
+  padding: 1.3rem 1.3rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+}
+.config-panel.hidden {
+  transform: translateX(120%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+}
+.panel-header h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+}
+.close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0,0,0,0.06);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #1f2937;
+  transition: background 0.2s;
+}
+.close-btn:hover {
+  background: rgba(0,0,0,0.12);
+}
+
+.panel-section { display: flex; flex-direction: column; gap: 0.7rem; }
+
+.panel-label, .panel-label-row .panel-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin: 0;
+}
+.panel-label-row { display: flex; justify-content: space-between; align-items: center; }
+
+.sample-btn {
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: none;
+  border: none;
+  color: var(--primary);
+  cursor: pointer;
+  padding: 0;
+}
+.sample-btn:hover { text-decoration: underline; }
+
+/* Theme grid */
+.theme-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.theme-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem;
+  border-radius: 16px;
+  border: 2px solid transparent;
+  background: rgba(255,255,255,0.7);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+.theme-btn:hover {
+  background: white;
+  transform: translateY(-1px);
+}
+.theme-btn.active {
+  border-color: var(--primary);
+  background: rgba(252, 231, 243, 0.9);
+}
+
+.theme-swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid white;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.18);
+}
+.swatch-pastel { background: linear-gradient(135deg, #f43f5e, #fb7185 45%, #fde68a); }
+.swatch-ruby { background: linear-gradient(135deg, #7f1d1d, #dc2626 45%, #fde047); }
+.swatch-gold { background: linear-gradient(135deg, #b45309, #f59e0b 45%, #fde68a); }
+.swatch-purple { background: linear-gradient(135deg, #4c1d95, #a855f7 45%, #c4b5fd); }
+
+.theme-info { display: flex; flex-direction: column; min-width: 0; }
+.theme-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.theme-desc {
+  font-size: 0.66rem;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Toggle rows */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.65);
+  border: 1px solid rgba(0,0,0,0.06);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.toggle-row:hover { background: rgba(255,255,255,0.95); }
+
+.toggle-icon {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.toggle-icon:nth-of-type(1) { background: #d1fae5; color: #047857; }
+
+.toggle-row:has(#toggle-breeze) .toggle-icon { background: #d1fae5; color: #047857; }
+.toggle-row:has(#toggle-lights) .toggle-icon { background: #fef3c7; color: #d97706; }
+.toggle-row:has(#toggle-petals) .toggle-icon { background: #fce7f3; color: #be185d; }
+
+.toggle-text { flex: 1; min-width: 0; }
+.toggle-title {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+.toggle-desc {
+  display: block;
+  font-size: 0.66rem;
+  color: #6b7280;
+}
+
+.toggle-input {
+  width: 18px;
+  height: 18px;
+  accent-color: #db2777;
+  cursor: pointer;
+}
+
+/* Wish input */
+.wish-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.95);
+  border: 1px solid rgba(244, 114, 182, 0.3);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #1f2937;
+  outline: none;
+  transition: all 0.2s;
+}
+.wish-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(219, 39, 119, 0.15);
+}
+
+/* Shuffle button */
+.shuffle-btn {
+  width: 100%;
+  padding: 0.85rem;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, var(--primary), #be185d);
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(190, 24, 93, 0.32);
+  transition: all 0.25s;
+}
+.shuffle-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(190, 24, 93, 0.4);
+}
+
+.shuffle-hint {
+  font-size: 0.7rem;
+  color: #6b7280;
+  text-align: center;
+  margin: 0.4rem 0 0;
+}
+
+/* Footer tags */
+.panel-footer-info { gap: 0.6rem; }
+
+.flower-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.f-tag {
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0.32rem 0.7rem;
+  border-radius: 999px;
+  background: white;
+  color: #4b5563;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+
+/* Overlay */
+.panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.18);
+  z-index: 45;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.panel-overlay:not(.hidden) {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+  .bouquet-header { padding: 0.8rem 1rem 0.3rem; }
+  .back-btn { top: 0.8rem; left: 0.8rem; font-size: 0.75rem; padding: 0.4rem 0.8rem; }
+  .bouquet-stage { height: calc(100vh - 80px); }
+  .bouquet-card-tag { max-width: 160px; padding: 0.7rem 0.9rem; bottom: 16%; right: 4%; }
+  .card-text { font-size: 0.95rem; }
+  .config-fab { bottom: 1rem; right: 1rem; padding: 0.7rem 0.85rem; }
+  .config-panel { top: 0.5rem; right: 0.5rem; bottom: 0.5rem; width: calc(100vw - 1rem); }
+}
+
+@media (max-width: 480px) {
+  .bouquet-header h1 { font-size: 1.35rem; }
+  .header-sub { font-size: 0.85rem; }
+  .theme-grid { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-thumb { background: rgba(219, 39, 119, 0.28); border-radius: 9999px; }

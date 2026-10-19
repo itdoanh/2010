@@ -173,61 +173,7 @@
   }
 
   // ============================================================
-  // 5. BOUQUET RENDERER (call BouquetGenerator)
-  // ============================================================
-  async function initBouquet() {
-    window.__initBouquet = initBouquet; // global ref for inline onclick
-    const display = $('#bouquet-display');
-    const loader = display ? display.querySelector('.bouquet-loader') : null;
-    if (!display) return;
-
-    try {
-      if (!BouquetGenerator.cache.length) {
-        BouquetGenerator.generateAll();
-      }
-      if (loader) loader.remove();
-      renderBouquetByDay();
-    } catch (err) {
-      if (loader) loader.textContent = 'Lỗi — hãy thử tải lại trang nhé!';
-      console.error(err);
-    }
-  }
-
-  function renderBouquetByDay() {
-    if (!BouquetGenerator.cache.length) return;
-    const today = new Date();
-    const start = new Date(today.getFullYear(), 0, 0);
-    const diff = today - start;
-    const oneDay = 1000 * 60 * 60 * 24;
-    const dayOfYear = Math.floor(diff / oneDay);
-
-    const bouquet = BouquetGenerator.getByDayOfYear(dayOfYear);
-    renderBouquet(bouquet);
-  }
-
-  function renderBouquetShuffle() {
-    if (!BouquetGenerator.cache.length) return;
-    const bouquet = BouquetGenerator.getRandom();
-    renderBouquet(bouquet);
-  }
-
-  function renderBouquet(bouquet) {
-    const display = $('#bouquet-display');
-    if (!display || !bouquet) return;
-    const svgHtml = BouquetGenerator.render(bouquet);
-
-    // Create wrapper div for animation
-    let wrapper = display.querySelector('#bouquet-svg');
-    if (wrapper) {
-      wrapper.innerHTML = svgHtml;
-    } else {
-      display.innerHTML = `<div id="bouquet-svg">${svgHtml}</div>`;
-      wrapper = display.querySelector('#bouquet-svg');
-    }
-  }
-
-  // ============================================================
-  // 6. RECIPIENT NAME INPUT SYNC
+  // 5. RECIPIENT NAME INPUT SYNC
   // ============================================================
   function bindRecipientInput() {
     const input = $('#recipient-name');
@@ -253,9 +199,6 @@
     startSparkleLayer();
     bindRecipientInput();
 
-    // Pre-generate all 365 bouquets immediately
-    BouquetGenerator.generateAll();
-
     // Splash → stage 2 sau 3 giây
     setTimeout(() => goToStage('stage-2'), 3200);
 
@@ -274,18 +217,12 @@
       btn4.addEventListener('click', function () {
         console.log('[NAV] btn-to-stage-4 clicked');
         goToStage('stage-4');
-        initBouquet();
       });
     }
 
-    // Đổi bó hoa khác
-    $('#btn-shuffle-bouquet').addEventListener('click', () => {
-      const svg = $('#bouquet-svg');
-      if (svg) {
-        svg.style.animation = 'none';
-        setTimeout(() => svg.style.animation = '', 50);
-      }
-      renderBouquetShuffle();
+    // Đổi bó hoa khác - chuyển sang trang bó hoa riêng
+    $('#btn-view-bouquet').addEventListener('click', () => {
+      window.location.href = 'bouquet-stage.html';
     });
 
     // Đọc lại từ đầu
