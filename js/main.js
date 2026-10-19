@@ -1,26 +1,20 @@
 /* ==========================================================================
-   js/main.js
-   ==========================================================================
-   Controller chính:
+   js/main.js — SIMPLIFIED
+   Controller chính cho trang Chúc Mừng 20/10:
    - Splash timer (3s → stage 2)
    - Petal rain animation
    - Sparkle layer
    - Stage navigation
    - Recipient name input sync
-   - Bouquet initial load + shuffle
    ========================================================================== */
 
 (function () {
   'use strict';
 
-  // ============================================================
-  // TIỆN ÍCH
-  // ============================================================
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => document.querySelectorAll(sel);
 
   function rand(min, max) { return Math.random() * (max - min) + min; }
-  function randInt(min, max) { return Math.floor(rand(min, max + 1)); }
 
   // ============================================================
   // 1. PETAL RAIN — cánh hoa rơi liên tục trên toàn trang
@@ -40,11 +34,10 @@
       const p = document.createElement('div');
       p.className = `petal petal-${type}`;
 
-      // Random horizontal start
       const startX = Math.random() * window.innerWidth;
-      const duration = 8 + Math.random() * 12; // 8-20s
-      const drift = (Math.random() - 0.5) * 200; // -100 to 100 px
-      const size = 0.6 + Math.random() * 0.7; // 0.6 - 1.3
+      const duration = 8 + Math.random() * 12;
+      const drift = (Math.random() - 0.5) * 200;
+      const size = 0.6 + Math.random() * 0.7;
       const delay = Math.random() * 2;
 
       p.style.left = startX + 'px';
@@ -53,22 +46,17 @@
       p.style.animationDuration = `${duration}s`;
       p.style.animationDelay = `${delay}s`;
       p.style.opacity = 0.7 + Math.random() * 0.3;
-
-      // Color variant - override
-      const colorVariants = ['#ff85b3', '#ffafcc', '#f7b5c5', '#ffd166', '#c5a3ff', '#fbb1bd', '#ff9eb3', '#f7c6da'];
       p.style.filter = `drop-shadow(0 1px 2px rgba(0,0,0,0.15)) hue-rotate(${Math.floor(Math.random() * 40 - 20)}deg)`;
 
       layer.appendChild(p);
       activePetals++;
 
-      // Cleanup
       p.addEventListener('animationend', () => {
         p.remove();
         activePetals--;
       });
     }
 
-    // Spawn ban đầu
     for (let i = 0; i < 20; i++) {
       setTimeout(spawnPetal, i * 200);
     }
@@ -100,7 +88,6 @@
     }
 
     setInterval(spawnSparkle, 400);
-    // Initial batch
     for (let i = 0; i < 15; i++) {
       setTimeout(spawnSparkle, i * 100);
     }
@@ -140,7 +127,6 @@
       if (p.top) f.style.top = p.top;
       if (p.left) f.style.left = p.left;
       if (p.right) f.style.right = p.right;
-      f.style.animationDelay = (i * 0.7) + 's';
       f.style.animation = `bgFlowerFloat ${10 + i % 4 * 2}s ease-in-out ${i * 0.3}s infinite`;
       layer.appendChild(f);
     });
@@ -150,9 +136,6 @@
   // 4. STAGE NAVIGATION
   // ============================================================
   function goToStage(stageId) {
-    // Global reference for inline onclick fallback
-    window.__goTo = goToStage;
-
     const current = document.querySelector('.stage-screen.active');
     const next = document.getElementById(stageId);
     if (!next || current === next) return;
@@ -162,7 +145,6 @@
       setTimeout(() => {
         current.classList.remove('active', 'exiting');
         next.classList.add('active');
-        // Scroll về đầu trang mới
         if (stageId === 'stage-3' || stageId === 'stage-4') {
           next.scrollTop = 0;
         }
@@ -190,46 +172,33 @@
   }
 
   // ============================================================
-  // 7. KHỞI TẠO
+  // 6. KHỞI TẠO
   // ============================================================
   function init() {
-    // Background & petals ngay
     addBackgroundFlowers();
     startPetalRain();
     startSparkleLayer();
     bindRecipientInput();
 
-    // Splash → stage 2 sau 3 giây
     setTimeout(() => goToStage('stage-2'), 3200);
 
-    // Nút đọc tiếp
     const btn3 = $('#btn-to-stage-3');
     if (btn3) {
-      btn3.addEventListener('click', function () {
-        console.log('[NAV] btn-to-stage-3 clicked');
-        goToStage('stage-3');
-      });
+      btn3.addEventListener('click', () => goToStage('stage-3'));
     }
 
-    // Nút mở bó hoa
     const btn4 = $('#btn-to-stage-4');
     if (btn4) {
-      btn4.addEventListener('click', function () {
-        console.log('[NAV] btn-to-stage-4 clicked');
-        goToStage('stage-4');
-      });
+      btn4.addEventListener('click', () => goToStage('stage-4'));
     }
 
-    // Đổi bó hoa khác - chuyển sang trang bó hoa riêng
-    $('#btn-view-bouquet').addEventListener('click', () => {
-      window.location.href = 'bouquet-stage.html';
-    });
-
-    // Đọc lại từ đầu
-    $('#btn-restart').addEventListener('click', () => {
-      goToStage('stage-1');
-      setTimeout(() => goToStage('stage-2'), 3200);
-    });
+    const btnRestart = $('#btn-restart');
+    if (btnRestart) {
+      btnRestart.addEventListener('click', () => {
+        goToStage('stage-1');
+        setTimeout(() => goToStage('stage-2'), 3200);
+      });
+    }
   }
 
   if (document.readyState === 'loading') {
