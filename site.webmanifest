@@ -1,0 +1,36 @@
+{
+  "name": "Rinva — Chúc Mừng 20/10",
+  "short_name": "Rinva",
+  "description": "Lá thư kỷ niệm Ngày Phụ Nữ Việt Nam 20/10 gửi đến tất cả phái đẹp Việt Nam những lời chúc tốt đẹp nhất từ Rinva.",
+  "lang": "vi-VN",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff6f8",
+  "theme_color": "#b7306a",
+  "icons": [
+    {
+      "src": "ico.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "ico.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "ico.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "share_target": {
+    "action": "/",
+    "method": "GET"
+  }
+}

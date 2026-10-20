@@ -17,9 +17,11 @@
   <meta property="og:title" content="Chúc Mừng 20/10 — Ngày Phụ Nữ Việt Nam | Rinva" />
   <meta property="og:description" content="Lá thư kỷ niệm Ngày Phụ Nữ Việt Nam 20/10. Mở bó hoa và nhận thiệp chúc mừng dành riêng cho bạn — từ Rinva." />
   <meta property="og:image" content="https://rin.io.vn/og-20-10.png" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:image:alt" content="Thiệp chúc mừng 20/10 — Ngày Phụ Nữ Việt Nam by Rinva" />
+  <meta property="og:image:secure_url" content="https://rin.io.vn/og-20-10.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1536" />
+  <meta property="og:image:height" content="1024" />
+  <meta property="og:image:alt" content="Thiệp chúc mừng 20/10 — Ngày Phụ Nữ Việt Nam từ Rinva" />
   <meta property="og:site_name" content="Rinva" />
   <meta property="og:locale" content="vi_VN" />
 
@@ -29,6 +31,7 @@
   <meta name="twitter:title" content="Chúc Mừng 20/10 — Ngày Phụ Nữ Việt Nam | Rinva" />
   <meta name="twitter:description" content="Lá thư kỷ niệm Ngày Phụ Nữ Việt Nam 20/10. Mở bó hoa và nhận thiệp chúc mừng dành riêng cho bạn — từ Rinva." />
   <meta name="twitter:image" content="https://rin.io.vn/og-20-10.png" />
+  <meta name="twitter:image:alt" content="Thiệp chúc mừng 20/10 — Ngày Phụ Nữ Việt Nam từ Rinva" />
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,31 +39,102 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Dancing+Script:wght@600;700&family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌹</text></svg>" />
-  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌹</text></svg>" />
+  <link rel="icon" type="image/png" sizes="any" href="ico.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="ico.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="ico.png" />
+  <link rel="shortcut icon" href="ico.png" />
+  <link rel="apple-touch-icon" href="ico.png" />
+  <link rel="mask-icon" href="ico.png" color="#b7306a" />
+
+  <!-- PWA / Web App -->
+  <link rel="manifest" href="site.webmanifest" />
+  <meta name="apple-mobile-web-app-title" content="Rinva" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="application-name" content="Rinva" />
 
   <!-- Schema.org / JSON-LD -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "Event",
+    "@id": "https://rin.io.vn/#event",
     "name": "Ngày Phụ Nữ Việt Nam 20/10",
-    "description": "Lá thư kỷ niệm Ngày Phụ Nữ Việt Nam 20/10 gửi đến tất cả phái đẹp Việt Nam những lời chúc tốt đẹp nhất.",
+    "alternateName": "Chúc Mừng 20/10 — Ngày Phụ Nữ Việt Nam",
+    "description": "Lá thư kỷ niệm Ngày Phụ Nữ Việt Nam 20/10 gửi đến tất cả phái đẹp Việt Nam những lời chúc tốt đẹp nhất từ Rinva.",
+    "url": "https://rin.io.vn",
     "startDate": "2026-10-20",
     "endDate": "2026-10-20",
     "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode",
     "eventStatus": "https://schema.org/EventScheduled",
+    "eventType": "https://schema.org/SocialEvent",
+    "isAccessibleForFree": true,
+    "inLanguage": "vi-VN",
+    "image": {
+      "@type": "ImageObject",
+      "url": "https://rin.io.vn/og-20-10.png",
+      "width": 1536,
+      "height": 1024,
+      "encodingFormat": "image/png",
+      "caption": "Thiệp chúc mừng 20/10 — Ngày Phụ Nữ Việt Nam từ Rinva"
+    },
+    "thumbnailUrl": "https://rin.io.vn/og-20-10.png",
     "location": {
       "@type": "VirtualLocation",
       "url": "https://rin.io.vn"
     },
     "organizer": {
       "@type": "Organization",
+      "@id": "https://rin.io.vn/#organization",
       "name": "Rinva",
-      "url": "https://rin.io.vn"
+      "url": "https://rin.io.vn",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://rin.io.vn/ico.png"
+      },
+      "image": "https://rin.io.vn/ico.png"
     },
-    "image": "https://rin.io.vn/og-20-10.png",
-    "inLanguage": "vi"
+    "publisher": {
+      "@type": "Organization",
+      "name": "Rinva",
+      "url": "https://rin.io.vn",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://rin.io.vn/ico.png"
+      }
+    }
+  }
+  </script>
+
+  <!-- Schema.org: WebSite + Organization (rich result cho Google) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": "https://rin.io.vn/#website",
+    "url": "https://rin.io.vn",
+    "name": "Rinva",
+    "alternateName": "rin.io.vn",
+    "description": "Rinva — Chia sẻ những khoảnh khắc và lời chúc tốt đẹp.",
+    "inLanguage": "vi-VN",
+    "publisher": {
+      "@type": "Organization",
+      "@id": "https://rin.io.vn/#organization",
+      "name": "Rinva",
+      "url": "https://rin.io.vn",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://rin.io.vn/ico.png"
+      }
+    },
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://rin.io.vn/search?q={search_term_string}"
+      },
+      "query-input": "required name=search_term_string"
+    }
   }
   </script>
 

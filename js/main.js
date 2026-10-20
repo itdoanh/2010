@@ -1023,51 +1023,60 @@
     // Vẽ dòng credit "Rinva · rin.io.vn" ở dưới cùng PNG postcard
     function drawRinvaCredit(ctx, W, H, K = 1, style = 'magazine') {
       const S = (v) => Math.round(v * K);
-      const cy = H - S(34);
+      const cy = H - S(46);
+      const rinvaSize = S(34);
+      const urlSize = S(28);
+      const dotR = Math.max(3, 4 * K);
+      const dotGapX = S(96);
+      const sepW = S(20);
+      // Màu theo style — đủ đậm để đọc rõ khi thu nhỏ
+      const rinvaColor = style === 'minimal' ? '#6b6b6b'
+                       : style === 'romantic' ? 'rgba(107, 39, 56, 0.92)'
+                       : 'rgba(160, 46, 91, 0.92)';
+      const urlColor = style === 'minimal' ? '#8a8a8a'
+                     : style === 'romantic' ? 'rgba(107, 39, 56, 0.75)'
+                     : 'rgba(160, 46, 91, 0.78)';
+
       ctx.save();
-      ctx.textAlign = 'center';
+      ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
-      // Chấm tròn nhỏ 2 bên
-      const dotR = Math.max(2, 3 * K);
-      const dotY = cy;
-      const dotGapX = S(120);
-      // Tên Rinva (in hoa, đậm) — màu theo style
-      const rinvaColor = style === 'minimal' ? '#9a9a9a'
-                       : style === 'romantic' ? 'rgba(140, 70, 50, 0.7)'
-                       : 'rgba(140, 60, 100, 0.72)';
-      // Vẽ "Rinva"
+
+      // Đo trước
       ctx.fillStyle = rinvaColor;
-      ctx.font = '600 ' + S(22) + 'px ' + FONT_BODY;
+      ctx.font = '700 ' + rinvaSize + 'px ' + FONT_BODY;
       const rinvaW = ctx.measureText('Rinva').width;
-      // URL nhỏ hơn, cùng dòng
-      ctx.font = '500 ' + S(20) + 'px ' + FONT_BODY;
+      ctx.fillStyle = urlColor;
+      ctx.font = '600 ' + urlSize + 'px ' + FONT_BODY;
       const urlW = ctx.measureText('rin.io.vn').width;
-      const sepW = S(16);
+
       const totalW = rinvaW + sepW + urlW + dotGapX * 2 + dotR * 2;
       const startX = W / 2 - totalW / 2;
-      // Chấm trái
+
+      // Chấm tròn 2 bên
+      ctx.fillStyle = urlColor;
       ctx.beginPath();
-      ctx.arc(startX + dotR, dotY, dotR, 0, Math.PI * 2);
+      ctx.arc(startX + dotR, cy, dotR, 0, Math.PI * 2);
       ctx.fill();
+      ctx.beginPath();
+      ctx.arc(startX + totalW - dotR, cy, dotR, 0, Math.PI * 2);
+      ctx.fill();
+
       // Rinva
-      ctx.font = '600 ' + S(22) + 'px ' + FONT_BODY;
-      ctx.textAlign = 'left';
       const rinvaX = startX + dotR * 2 + dotGapX;
+      ctx.fillStyle = rinvaColor;
+      ctx.font = '700 ' + rinvaSize + 'px ' + FONT_BODY;
       ctx.fillText('Rinva', rinvaX, cy);
+
       // Dấu phân cách chấm giữa
       const midDotX = rinvaX + rinvaW + sepW / 2;
       ctx.beginPath();
-      ctx.arc(midDotX, cy, Math.max(1.5, 2 * K), 0, Math.PI * 2);
+      ctx.arc(midDotX, cy, Math.max(2, 2.5 * K), 0, Math.PI * 2);
       ctx.fill();
+
       // URL
-      const urlX = rinvaX + rinvaW + sepW;
-      ctx.font = '500 ' + S(20) + 'px ' + FONT_BODY;
-      ctx.fillText('rin.io.vn', urlX, cy);
-      // Chấm phải
-      const rightX = urlX + urlW + dotGapX;
-      ctx.beginPath();
-      ctx.arc(rightX + dotR, dotY, dotR, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillStyle = urlColor;
+      ctx.font = '600 ' + urlSize + 'px ' + FONT_BODY;
+      ctx.fillText('rin.io.vn', rinvaX + rinvaW + sepW, cy);
       ctx.restore();
     }
 
