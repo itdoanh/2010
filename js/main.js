@@ -1123,7 +1123,7 @@
           if (blob) {
             const file = new File([blob], safeFilename(name), { type: 'image/png' });
             if (navigator.canShare({ files: [file] })) {
-              await navigator.share({ files: [file], title: 'Chúc Mừng 20/10 — By Rinva', text: text, url: 'https://rin.io.vn/20-10' });
+              await navigator.share({ files: [file], title: 'Chúc Mừng 20/10 — By Rinva', text: text, url: 'https://rin.io.vn' });
               toast('Đã mở bảng chia sẻ!', '📤');
               markSuccess();
               return;
@@ -1147,7 +1147,7 @@
     }
 
     function shareFallback(text) {
-      const shareUrl = 'https://rin.io.vn/20-10';
+      const shareUrl = 'https://rin.io.vn';
       const full = `${text}\n${shareUrl}`;
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(full).then(
