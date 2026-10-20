@@ -199,7 +199,7 @@
      */
     async function renderPostcardToCanvas() {
       const W = 1080;
-      const H = 1350;
+      const H = 1500;
       const canvas = document.createElement('canvas');
       canvas.width = W;
       canvas.height = H;
@@ -332,18 +332,25 @@
       const photoY = headerY + 180;
       const photoW = innerW - 120;
       const photoSize = photoW; // vuông
-      // Inner border trắng trước
+      // Inner border trắng (khung trắng bao quanh ảnh)
       ctx.save();
-      roundRect(ctx, photoX - 14, photoY - 14, photoSize + 28, photoSize + 28, 24);
+      roundRect(ctx, photoX - 12, photoY - 12, photoSize + 24, photoSize + 24, 22);
       ctx.fillStyle = '#fff';
       ctx.fill();
       ctx.restore();
 
-      // Clip ảnh theo rounded rect
+      // Tô nền pastel đẹp cho ảnh (phòng khi ảnh contain không lấp đầy khung)
       ctx.save();
-      roundRect(ctx, photoX, photoY, photoSize, photoSize, 16);
+      roundRect(ctx, photoX, photoY, photoSize, photoSize, 14);
+      ctx.fillStyle = '#fff5f7';
+      ctx.fill();
+      ctx.restore();
+
+      // Clip ảnh theo rounded rect, chừa border trắng
+      ctx.save();
+      roundRect(ctx, photoX + 4, photoY + 4, photoSize - 8, photoSize - 8, 10);
       ctx.clip();
-      drawCoverImage(ctx, bouquetImg, photoX, photoY, photoSize, photoSize);
+      drawCoverImage(ctx, bouquetImg, photoX + 4, photoY + 4, photoSize - 8, photoSize - 8);
       ctx.restore();
 
       // Overlay caption "Một bó hoa được kết từ rất nhiều yêu thương"
@@ -413,38 +420,46 @@
       const maxWishWidth = innerW - 180;
       const lines1 = wrapLines(ctx, wishText1, maxWishWidth);
       const lines2 = wrapLines(ctx, wishText2, maxWishWidth);
+      const wishLineHeight = 56;
       let lineY = wishY;
-      lines1.forEach((ln) => { ctx.fillText(ln, innerX + innerW / 2, lineY); lineY += 56; });
-      lines2.forEach((ln) => { ctx.fillText(ln, innerX + innerW / 2, lineY); lineY += 56; });
+      lines1.forEach((ln) => { ctx.fillText(ln, innerX + innerW / 2, lineY); lineY += wishLineHeight; });
+      lines2.forEach((ln) => { ctx.fillText(ln, innerX + innerW / 2, lineY); lineY += wishLineHeight; });
+      const wishTotalHeight = lineY - wishY; // Tổng chiều cao wish block
 
       // ---- Bước 6: Footer ----------------------------------------------
-      const footerY = innerY + innerH - 80;
+      // Footer đặt dưới wish text + 50px buffer, nhưng không vượt innerY+innerH-100
+      const footerAbsMax = innerY + innerH - 100;
+      const footerY = Math.min(wishY + wishTotalHeight + 60, footerAbsMax);
+
       // Hai gạch ngang hai bên
       const footText = 'Với tất cả yêu thương & trân trọng';
       ctx.font = `italic 500 32px ${FONT_SCRIPT}`;
       const ftW = ctx.measureText(footText).width;
       const lineLen = 60;
-      const totalW = lineLen * 2 + 40 + ftW;
+      const gap = 24; // khoảng cách giữa line và text
+      const totalW = lineLen * 2 + gap * 2 + ftW;
 
       ctx.save();
       ctx.strokeStyle = 'rgba(198, 58, 114, 0.5)';
       ctx.lineWidth = 2;
       const startX = innerX + innerW / 2 - totalW / 2;
+      const lineMid = footerY + 18;
       ctx.beginPath();
-      ctx.moveTo(startX, footerY + 16);
-      ctx.lineTo(startX + lineLen, footerY + 16);
+      ctx.moveTo(startX, lineMid);
+      ctx.lineTo(startX + lineLen, lineMid);
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(startX + lineLen + 40 + ftW, footerY + 16);
-      ctx.lineTo(startX + lineLen + 40 + ftW + lineLen, footerY + 16);
+      ctx.moveTo(startX + lineLen + gap * 2 + ftW, lineMid);
+      ctx.lineTo(startX + lineLen + gap * 2 + ftW + lineLen, lineMid);
       ctx.stroke();
       ctx.restore();
 
+      // Text baseline middle, vẽ đúng vị trí
       ctx.fillStyle = '#8a5a72';
       ctx.font = `italic 500 32px ${FONT_SCRIPT}`;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
-      ctx.fillText(footText, startX + lineLen + 20, footerY + 16);
+      ctx.fillText(footText, startX + lineLen + gap, lineMid);
 
       return canvas;
     }
@@ -469,8 +484,8 @@
       const iw = src.width || src.naturalWidth;
       const ih = src.height || src.naturalHeight;
       if (!iw || !ih) return;
-      // cover
-      const scale = Math.max(dw / iw, dh / ih);
+      // Contain — giữ nguyên tỉ lệ, không cắt (ảnh sẽ vừa vặn vào khung)
+      const scale = Math.min(dw / iw, dh / ih);
       const sw = dw / scale;
       const sh = dh / scale;
       const sx = (iw - sw) / 2;
