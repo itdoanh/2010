@@ -199,7 +199,7 @@
      */
     async function renderPostcardToCanvas() {
       const W = 1080;
-      const H = 1500;
+      const H = 1700;
       const canvas = document.createElement('canvas');
       canvas.width = W;
       canvas.height = H;
@@ -328,9 +328,9 @@
       ctx.fillText(tagText, tagX + 28, tagY + tagH / 2 + 1);
 
       // ---- Bước 4: Ảnh bó hoa ------------------------------------------
-      const photoX = innerX + 60;
+      const photoX = innerX + 80;
       const photoY = headerY + 180;
-      const photoW = innerW - 120;
+      const photoW = innerW - 200;
       const photoSize = photoW; // vuông
       // Inner border trắng (khung trắng bao quanh ảnh)
       ctx.save();
@@ -378,7 +378,7 @@
       ctx.restore();
 
       // ---- Bước 5: Lời chúc -------------------------------------------
-      const msgY = photoY + photoSize + 70;
+      const msgY = photoY + photoSize + 60;
       // "— Gửi đến —"
       ctx.fillStyle = '#c47190';
       ctx.font = `italic 500 38px ${FONT_SCRIPT}`;
@@ -392,7 +392,7 @@
       const nameBoxW = Math.min(Math.max(nameW + 100, innerW - 200), innerW - 80);
       const nameBoxH = 110;
       const nameBoxX = innerX + innerW / 2 - nameBoxW / 2;
-      const nameBoxY = msgY + 64;
+      const nameBoxY = msgY + 58;
       const nameGrad = ctx.createLinearGradient(0, nameBoxY, 0, nameBoxY + nameBoxH);
       nameGrad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
       nameGrad.addColorStop(1, 'rgba(255, 246, 240, 0.95)');
@@ -415,7 +415,7 @@
       ctx.fillStyle = '#5a3045';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
-      const wishY = nameBoxY + nameBoxH + 50;
+      const wishY = nameBoxY + nameBoxH + 44;
       // Đo từng dòng — nếu dài, wrap đơn giản
       const maxWishWidth = innerW - 180;
       const lines1 = wrapLines(ctx, wishText1, maxWishWidth);
@@ -424,12 +424,18 @@
       let lineY = wishY;
       lines1.forEach((ln) => { ctx.fillText(ln, innerX + innerW / 2, lineY); lineY += wishLineHeight; });
       lines2.forEach((ln) => { ctx.fillText(ln, innerX + innerW / 2, lineY); lineY += wishLineHeight; });
-      const wishTotalHeight = lineY - wishY; // Tổng chiều cao wish block
+      // wishTotalHeight = (số dòng thực tế) * wishLineHeight, sau lineY
+      const wishActualHeight = lineY - wishY;
 
       // ---- Bước 6: Footer ----------------------------------------------
-      // Footer đặt dưới wish text + 50px buffer, nhưng không vượt innerY+innerH-100
-      const footerAbsMax = innerY + innerH - 100;
-      const footerY = Math.min(wishY + wishTotalHeight + 60, footerAbsMax);
+      // Footer đặt SAU wish text với buffer đủ lớn — không bao giờ đè lên
+      // wish hay nameBox. Nếu thiếu chỗ, đẩy footer xuống (không bao giờ lên).
+      const wishEnd = wishY + wishActualHeight;
+      const footerGap = 70;
+      const footerY = wishEnd + footerGap;
+      // Đảm bảo footer vẫn nằm gọn trong postcard (buffer dưới 60px)
+      const maxFooterY = H - 100;
+      const safeFooterY = Math.min(footerY, maxFooterY);
 
       // Hai gạch ngang hai bên
       const footText = 'Với tất cả yêu thương & trân trọng';
@@ -443,7 +449,7 @@
       ctx.strokeStyle = 'rgba(198, 58, 114, 0.5)';
       ctx.lineWidth = 2;
       const startX = innerX + innerW / 2 - totalW / 2;
-      const lineMid = footerY + 18;
+      const lineMid = safeFooterY + 18;
       ctx.beginPath();
       ctx.moveTo(startX, lineMid);
       ctx.lineTo(startX + lineLen, lineMid);
