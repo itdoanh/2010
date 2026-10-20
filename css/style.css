@@ -1154,15 +1154,6 @@ input { font-family: inherit; }
   font-size: 1.1rem;
 }
 
-/* === Disabled khi đang xuất ảnh === */
-.postcard.export-mode {
-  pointer-events: none;
-}
-
-.postcard.export-mode * {
-  animation: none !important;
-}
-
 
 /* ============================================================
    RESPONSIVE

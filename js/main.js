@@ -133,24 +133,34 @@
   }
 
   // ============================================================
-  // 3.5 POSTCARD — xử lý Share / Download tấm postcard ra PNG
+  // 3.5 POSTCARD — xuất PNG bằng Canvas API thuần (không cần lib ngoài)
   // ============================================================
   function initPostcardActions() {
-    const postcard = document.getElementById('postcard');
     const img = document.getElementById('bouquet-img');
-    if (!postcard || !img) return;
+    if (!img) return;
 
-    // Bảo đảm ảnh hoa tải xong trước khi cho phép export
+    // ---- Helpers --------------------------------------------------------
+    const FONT_DISPLAY = '"Cormorant Garamond", "Times New Roman", serif';
+    const FONT_SCRIPT = '"Dancing Script", "Brush Script MT", cursive';
+    const FONT_BODY = '"Be Vietnam Pro", "Segoe UI", system-ui, sans-serif';
+
+    function ensureFontLoaded(fontFamily) {
+      // Trả về Promise — hầu như luôn resolved vì Google Fonts đã load sẵn
+      if (document.fonts && document.fonts.ready) {
+        return document.fonts.ready.then(() => document.fonts.load(`16px ${fontFamily}`)).catch(() => null);
+      }
+      return Promise.resolve(null);
+    }
+
     function ensureImageReady(src) {
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
         const test = new Image();
-        test.onload = () => resolve(true);
-        test.onerror = () => resolve(false);
+        test.onload = () => resolve(test);
+        test.onerror = () => reject(new Error('Không tải được ảnh hoa'));
         test.src = src;
       });
     }
 
-    // Sinh tên file an toàn từ tên người nhận
     function safeFilename(name) {
       const cleaned = (name || 'thu-20-10')
         .normalize('NFD')
@@ -162,7 +172,6 @@
       return `postcard-20-10-${cleaned}.png`;
     }
 
-    // Sinh tên chia sẻ
     function shareText(name) {
       const n = (name || '').trim();
       return n
@@ -184,42 +193,328 @@
       el._t = setTimeout(() => el.classList.remove('show'), 2400);
     }
 
-    async function capturePostcard() {
-      // Đợi ảnh hoa thật sự load xong (tránh html2canvas vẽ ra ảnh trống)
-      const src = img.src || img.dataset.src;
-      if (!src) throw new Error('Không tìm thấy ảnh hoa');
-      await ensureImageReady(src);
+    /**
+     * Vẽ postcard ra canvas 1080x1350 (tỉ lệ 4:5 — Instagram-friendly).
+     * Trả về Promise<HTMLCanvasElement>.
+     */
+    async function renderPostcardToCanvas() {
+      const W = 1080;
+      const H = 1350;
+      const canvas = document.createElement('canvas');
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Trình duyệt không hỗ trợ Canvas');
 
-      // Tạm tắt animation để ảnh chụp không bị nhòe
-      postcard.classList.add('export-mode');
+      const name = (document.getElementById('recipient-name')?.value || 'Người phụ nữ tuyệt vời').trim() || 'Người phụ nữ tuyệt vời';
 
-      const html2canvas = window.html2canvas;
-      if (typeof html2canvas !== 'function') {
-        postcard.classList.remove('export-mode');
-        throw new Error('html2canvas chưa sẵn sàng');
-      }
+      // Đợi fonts sẵn sàng
+      await Promise.all([
+        ensureFontLoaded(FONT_DISPLAY),
+        ensureFontLoaded(FONT_SCRIPT),
+        ensureFontLoaded(FONT_BODY),
+      ]);
 
-      try {
-        const canvas = await html2canvas(postcard, {
-          backgroundColor: '#fff8f5',
-          scale: window.devicePixelRatio > 1 ? 2 : 2,
-          useCORS: true,
-          allowTaint: false,
-          logging: false,
-          windowWidth: postcard.scrollWidth,
-          windowHeight: postcard.scrollHeight,
-        });
-        return canvas;
-      } finally {
-        postcard.classList.remove('export-mode');
-      }
+      const imgSrc = img.src || img.dataset.src;
+      if (!imgSrc) throw new Error('Không tìm thấy ảnh hoa');
+      const bouquetImg = await ensureImageReady(imgSrc);
+
+      // ---- Bước 1: Nền pastel gradient ----------------------------------
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+      bgGrad.addColorStop(0, '#fff8f5');
+      bgGrad.addColorStop(0.5, '#fff0f5');
+      bgGrad.addColorStop(1, '#fbe6ee');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      // ---- Bước 2: Khung postcard (bo tròn) ----------------------------
+      const outerX = 40, outerY = 40, outerR = 50;
+      const outerW = W - 80;
+      const outerH = H - 80;
+
+      // Outer card (gradient đậm hơn)
+      const cardGrad = ctx.createLinearGradient(0, outerY, 0, outerY + outerH);
+      cardGrad.addColorStop(0, '#ffeaf0');
+      cardGrad.addColorStop(1, '#fbdde6');
+      roundRect(ctx, outerX, outerY, outerW, outerH, outerR);
+      ctx.fillStyle = cardGrad;
+      ctx.fill();
+
+      // Viền dashed
+      ctx.save();
+      ctx.lineWidth = 3;
+      ctx.setLineDash([10, 12]);
+      ctx.strokeStyle = 'rgba(198, 58, 114, 0.55)';
+      const innerX = outerX + 28, innerY = outerY + 28;
+      const innerW = outerW - 56, innerH = outerH - 56;
+      roundRect(ctx, innerX, innerY, innerW, innerH, 36);
+      ctx.stroke();
+      ctx.restore();
+
+      // 4 góc hoa ✿
+      drawCornerDeco(ctx, '✿', innerX + 24, innerY + 24);
+      drawCornerDeco(ctx, '✿', innerX + innerW - 24, innerY + 24, { align: 'right' });
+      drawCornerDeco(ctx, '✿', innerX + 24, innerY + innerH - 24, { baseline: 'bottom' });
+      drawCornerDeco(ctx, '✿', innerX + innerW - 24, innerY + innerH - 24, { align: 'right', baseline: 'bottom' });
+
+      // ---- Bước 3: Header -----------------------------------------------
+      const headerY = outerY + 80;
+      const headerH = 90;
+
+      // Stamp trái (gradient + hoa hồng emoji)
+      const stampX = innerX + 50;
+      const stampY = headerY;
+      const stampSize = 96;
+      const stampGrad = ctx.createLinearGradient(stampX, stampY, stampX + stampSize, stampY + stampSize);
+      stampGrad.addColorStop(0, '#ffd6e0');
+      stampGrad.addColorStop(1, '#ffb3c8');
+      ctx.save();
+      ctx.translate(stampX + stampSize / 2, stampY + stampSize / 2);
+      ctx.rotate(-6 * Math.PI / 180);
+      ctx.translate(-(stampX + stampSize / 2), -(stampY + stampSize / 2));
+      roundRect(ctx, stampX, stampY, stampSize, stampSize, 18);
+      ctx.fillStyle = stampGrad;
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = '60px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🌹', stampX + stampSize / 2, stampY + stampSize / 2 + 4);
+      ctx.restore();
+
+      // Meta text giữa
+      ctx.fillStyle = '#b7306a';
+      ctx.font = `600 30px ${FONT_DISPLAY}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText("Happy Vietnamese Women's Day", innerX + innerW / 2, headerY + 36);
+
+      ctx.fillStyle = '#c63a72';
+      ctx.font = `700 38px ${FONT_DISPLAY}`;
+      ctx.fillText('20 . 10 . 2026', innerX + innerW / 2, headerY + 76);
+
+      // Đường gạch chân header
+      ctx.save();
+      ctx.setLineDash([]);
+      ctx.strokeStyle = 'rgba(198, 58, 114, 0.25)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(innerX + 200, headerY + 130);
+      ctx.lineTo(innerX + innerW - 200, headerY + 130);
+      ctx.stroke();
+      ctx.restore();
+
+      // Tag đỏ góc phải
+      const tagText = 'SPECIAL DAY';
+      ctx.font = `700 26px ${FONT_DISPLAY}`;
+      const tagW = ctx.measureText(tagText).width + 36;
+      const tagH = 44;
+      const tagX = innerX + innerW - 50 - tagW;
+      const tagY = headerY + 20;
+      const tagGrad = ctx.createLinearGradient(tagX, tagY, tagX, tagY + tagH);
+      tagGrad.addColorStop(0, '#c63a72');
+      tagGrad.addColorStop(1, '#a02e5b');
+      roundRect(ctx, tagX, tagY, tagW, tagH, 10);
+      ctx.fillStyle = tagGrad;
+      ctx.fill();
+      // Dot trắng
+      ctx.beginPath();
+      ctx.arc(tagX + 14, tagY + tagH / 2, 5, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffd6e0';
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'left';
+      ctx.font = `700 24px ${FONT_DISPLAY}`;
+      ctx.fillText(tagText, tagX + 28, tagY + tagH / 2 + 1);
+
+      // ---- Bước 4: Ảnh bó hoa ------------------------------------------
+      const photoX = innerX + 60;
+      const photoY = headerY + 180;
+      const photoW = innerW - 120;
+      const photoSize = photoW; // vuông
+      // Inner border trắng trước
+      ctx.save();
+      roundRect(ctx, photoX - 14, photoY - 14, photoSize + 28, photoSize + 28, 24);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.restore();
+
+      // Clip ảnh theo rounded rect
+      ctx.save();
+      roundRect(ctx, photoX, photoY, photoSize, photoSize, 16);
+      ctx.clip();
+      drawCoverImage(ctx, bouquetImg, photoX, photoY, photoSize, photoSize);
+      ctx.restore();
+
+      // Overlay caption "Một bó hoa được kết từ rất nhiều yêu thương"
+      const captionText = 'Một bó hoa được kết từ rất nhiều yêu thương';
+      ctx.font = `italic 500 30px ${FONT_SCRIPT}`;
+      const capW = ctx.measureText(captionText).width + 80;
+      const capH = 56;
+      const capX = photoX + photoSize / 2 - capW / 2;
+      const capY = photoY + photoSize - capH - 22;
+      ctx.save();
+      roundRect(ctx, capX, capY, capW, capH, capH / 2);
+      ctx.fillStyle = 'rgba(40, 12, 25, 0.62)';
+      ctx.fill();
+      // ✦ ✦
+      ctx.fillStyle = '#ffd6e0';
+      ctx.font = '24px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('✦', capX + 22, capY + capH / 2);
+      ctx.fillText('✦', capX + capW - 22, capY + capH / 2);
+      // Text
+      ctx.fillStyle = '#fff5f7';
+      ctx.font = `italic 500 30px ${FONT_SCRIPT}`;
+      ctx.fillText(captionText, capX + capW / 2, capY + capH / 2 + 2);
+      ctx.restore();
+
+      // ---- Bước 5: Lời chúc -------------------------------------------
+      const msgY = photoY + photoSize + 70;
+      // "— Gửi đến —"
+      ctx.fillStyle = '#c47190';
+      ctx.font = `italic 500 38px ${FONT_SCRIPT}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText('— Gửi đến —', innerX + innerW / 2, msgY);
+
+      // Tên người nhận (to đậm, viền pill vàng)
+      ctx.font = `700 76px ${FONT_DISPLAY}`;
+      const nameW = ctx.measureText(name).width;
+      const nameBoxW = Math.min(Math.max(nameW + 100, innerW - 200), innerW - 80);
+      const nameBoxH = 110;
+      const nameBoxX = innerX + innerW / 2 - nameBoxW / 2;
+      const nameBoxY = msgY + 64;
+      const nameGrad = ctx.createLinearGradient(0, nameBoxY, 0, nameBoxY + nameBoxH);
+      nameGrad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+      nameGrad.addColorStop(1, 'rgba(255, 246, 240, 0.95)');
+      roundRect(ctx, nameBoxX, nameBoxY, nameBoxW, nameBoxH, 22);
+      ctx.fillStyle = nameGrad;
+      ctx.fill();
+      ctx.strokeStyle = '#f4d35e';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+      // Tên
+      ctx.fillStyle = '#c63a72';
+      ctx.font = `700 64px ${FONT_DISPLAY}`;
+      ctx.textBaseline = 'middle';
+      ctx.fillText(name, innerX + innerW / 2, nameBoxY + nameBoxH / 2);
+
+      // Lời chúc với 🌷 hai bên
+      const wishText1 = '🌷  Chúc ' + name + ' một ngày 20/10';
+      const wishText2 = 'thật ý nghĩa, tràn đầy hoa và yêu thương  🌷';
+      ctx.font = `italic 500 38px ${FONT_SCRIPT}`;
+      ctx.fillStyle = '#5a3045';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      const wishY = nameBoxY + nameBoxH + 50;
+      // Đo từng dòng — nếu dài, wrap đơn giản
+      const maxWishWidth = innerW - 180;
+      const lines1 = wrapLines(ctx, wishText1, maxWishWidth);
+      const lines2 = wrapLines(ctx, wishText2, maxWishWidth);
+      let lineY = wishY;
+      lines1.forEach((ln) => { ctx.fillText(ln, innerX + innerW / 2, lineY); lineY += 56; });
+      lines2.forEach((ln) => { ctx.fillText(ln, innerX + innerW / 2, lineY); lineY += 56; });
+
+      // ---- Bước 6: Footer ----------------------------------------------
+      const footerY = innerY + innerH - 80;
+      // Hai gạch ngang hai bên
+      const footText = 'Với tất cả yêu thương & trân trọng';
+      ctx.font = `italic 500 32px ${FONT_SCRIPT}`;
+      const ftW = ctx.measureText(footText).width;
+      const lineLen = 60;
+      const totalW = lineLen * 2 + 40 + ftW;
+
+      ctx.save();
+      ctx.strokeStyle = 'rgba(198, 58, 114, 0.5)';
+      ctx.lineWidth = 2;
+      const startX = innerX + innerW / 2 - totalW / 2;
+      ctx.beginPath();
+      ctx.moveTo(startX, footerY + 16);
+      ctx.lineTo(startX + lineLen, footerY + 16);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(startX + lineLen + 40 + ftW, footerY + 16);
+      ctx.lineTo(startX + lineLen + 40 + ftW + lineLen, footerY + 16);
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.fillStyle = '#8a5a72';
+      ctx.font = `italic 500 32px ${FONT_SCRIPT}`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(footText, startX + lineLen + 20, footerY + 16);
+
+      return canvas;
     }
 
+    // ---- Helpers vẽ ---------------------------------------------------
+    function roundRect(ctx, x, y, w, h, r) {
+      const radius = Math.min(r, Math.min(w, h) / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + w - radius, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+      ctx.lineTo(x + w, y + h - radius);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+      ctx.lineTo(x + radius, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+    }
+
+    function drawCoverImage(ctx, src, dx, dy, dw, dh) {
+      const iw = src.width || src.naturalWidth;
+      const ih = src.height || src.naturalHeight;
+      if (!iw || !ih) return;
+      // cover
+      const scale = Math.max(dw / iw, dh / ih);
+      const sw = dw / scale;
+      const sh = dh / scale;
+      const sx = (iw - sw) / 2;
+      const sy = (ih - sh) / 2;
+      ctx.drawImage(src, sx, sy, sw, sh, dx, dy, dw, dh);
+    }
+
+    function drawCornerDeco(ctx, ch, x, y, opts = {}) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(198, 58, 114, 0.85)';
+      ctx.font = '34px serif';
+      ctx.textAlign = opts.align || 'left';
+      ctx.textBaseline = opts.baseline || 'top';
+      if (opts.align === 'right') {
+        ctx.fillText(ch, x, y);
+      } else {
+        ctx.fillText(ch, x, y);
+      }
+      ctx.restore();
+    }
+
+    function wrapLines(ctx, text, maxWidth) {
+      const words = text.split(' ');
+      const lines = [];
+      let line = '';
+      for (const w of words) {
+        const trial = line ? line + ' ' + w : w;
+        if (ctx.measureText(trial).width > maxWidth && line) {
+          lines.push(line);
+          line = w;
+        } else {
+          line = trial;
+        }
+      }
+      if (line) lines.push(line);
+      return lines;
+    }
+
+    // ---- Actions -------------------------------------------------------
     async function downloadPostcard() {
-      const name = document.getElementById('recipient-name')?.value || '';
       try {
-        const canvas = await capturePostcard();
+        const canvas = await renderPostcardToCanvas();
         const dataUrl = canvas.toDataURL('image/png');
+        const name = document.getElementById('recipient-name')?.value || '';
         const link = document.createElement('a');
         link.download = safeFilename(name);
         link.href = dataUrl;
@@ -235,41 +530,37 @@
     }
 
     async function sharePostcard() {
-      const name = document.getElementById('recipient-name')?.value || '';
-      const text = shareText(name);
-      const url = location.href;
-      let shared = false;
+      try {
+        const canvas = await renderPostcardToCanvas();
+        const name = document.getElementById('recipient-name')?.value || '';
+        const text = shareText(name);
 
-      // Ưu tiên Web Share API (mobile, có file)
-      if (navigator.canShare && navigator.share) {
-        try {
-          const canvas = await capturePostcard();
-          canvas.toBlob(async (blob) => {
-            if (!blob) {
-              shareFallback(text, url);
-              return;
-            }
+        if (canvas.toBlob && navigator.canShare && navigator.share) {
+          const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+          if (blob) {
             const file = new File([blob], safeFilename(name), { type: 'image/png' });
             if (navigator.canShare({ files: [file] })) {
               await navigator.share({ files: [file], title: '20.10.2026', text });
-              shared = true;
               toast('Đã mở bảng chia sẻ!', '📤');
               markSuccess();
-            } else {
-              shareFallback(text, url);
+              return;
             }
-          }, 'image/png');
-          return;
-        } catch (err) {
-          console.warn('Web Share file failed:', err);
+          }
         }
+        shareFallback(text);
+      } catch (err) {
+        if (err && err.name === 'AbortError') {
+          // User hủy chia sẻ, không báo lỗi
+          return;
+        }
+        console.warn('Web Share file failed:', err);
+        const text = shareText(document.getElementById('recipient-name')?.value || '');
+        shareFallback(text);
       }
-
-      shareFallback(text, url);
     }
 
-    function shareFallback(text, url) {
-      // Copy link + text vào clipboard
+    function shareFallback(text) {
+      const url = location.href;
       const full = `${text}\n${url}`;
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(full).then(
@@ -280,7 +571,6 @@
           () => toast('Không thể sao chép, hãy chụp màn hình nhé', '⚠')
         );
       } else {
-        // Fallback cũ
         const ta = document.createElement('textarea');
         ta.value = full;
         document.body.appendChild(ta);
@@ -309,14 +599,13 @@
       flashButtonSuccess(document.getElementById('btn-share-2'));
     }
 
-    // Gắn sự kiện cho cả cặp nút (desktop + mobile)
+    // ---- Bind events --------------------------------------------------
     [
       ['btn-download', 'btn-download-2'],
       ['btn-share', 'btn-share-2'],
     ].forEach((pair) => {
-      const [top, bottom] = pair;
       const action = pair[0].startsWith('btn-download') ? downloadPostcard : sharePostcard;
-      [top, bottom].forEach((id) => {
+      pair.forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('click', (e) => {
           e.preventDefault();
@@ -324,15 +613,6 @@
         });
       });
     });
-
-    // Đợi ảnh sẵn sàng rồi thông báo nhẹ
-    if (img.complete && img.naturalWidth > 0) {
-      // ok
-    } else {
-      img.addEventListener('load', () => {
-        // ok
-      }, { once: true });
-    }
   }
 
   // ============================================================
