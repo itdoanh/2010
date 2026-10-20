@@ -204,9 +204,10 @@
 
     function shareText(name) {
       const n = (name || '').trim();
+      const suffix = ' · rin.io.vn';
       return n
-        ? `💐 ${n} ơi, dành cho bạn đó! — Chúc mừng 20.10.2026 🌹`
-        : `💐 Gửi đến bạn! — Chúc mừng 20.10.2026 🌹`;
+        ? `\u{1F490} ${n} \u{1F691}, dành cho bạn đó! — Chúc mừng 20.10.2026${suffix} \u{1F33F}`
+        : `\u{1F490} Gửi đến bạn! — Chúc mừng 20.10.2026${suffix} \u{1F33F}`;
     }
 
     function toast(msg, icon = '✓') {
@@ -1122,7 +1123,7 @@
           if (blob) {
             const file = new File([blob], safeFilename(name), { type: 'image/png' });
             if (navigator.canShare({ files: [file] })) {
-              await navigator.share({ files: [file], title: '20.10.2026', text });
+              await navigator.share({ files: [file], title: 'Chúc Mừng 20/10 — By Rinva', text: text, url: 'https://rin.io.vn/20-10' });
               toast('Đã mở bảng chia sẻ!', '📤');
               markSuccess();
               return;
@@ -1146,8 +1147,8 @@
     }
 
     function shareFallback(text) {
-      const url = location.href;
-      const full = `${text}\n${url}`;
+      const shareUrl = 'https://rin.io.vn/20-10';
+      const full = `${text}\n${shareUrl}`;
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(full).then(
           () => {
