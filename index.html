@@ -170,12 +170,28 @@
       </button>
     </div>
 
+    <!-- Bộ chọn phong cách postcard PNG (chỉ ảnh hưởng tới ảnh xuất ra) -->
+    <div class="style-picker" role="group" aria-label="Chọn phong cách postcard">
+      <button type="button" class="style-chip is-active" data-style="magazine" aria-pressed="true" aria-label="Tạp chí sang trọng">
+        <span class="style-icon">✨</span>
+        <span class="style-name">Tạp chí</span>
+      </button>
+      <button type="button" class="style-chip" data-style="romantic" aria-pressed="false" aria-label="Lãng mạn cổ điển">
+        <span class="style-icon">🌸</span>
+        <span class="style-name">Vintage</span>
+      </button>
+      <button type="button" class="style-chip" data-style="minimal" aria-pressed="false" aria-label="Tối giản hiện đại">
+        <span class="style-icon">◻</span>
+        <span class="style-name">Minimal</span>
+      </button>
+    </div>
+
     <div class="final-stage">
 
       <div class="final-bg-glow"></div>
 
       <!-- Tấm postcard để chụp ảnh -->
-      <div id="postcard" class="postcard">
+      <div id="postcard" class="postcard postcard--magazine">
 
         <!-- Viền ngoài -->
         <div class="postcard-border">

@@ -139,6 +139,9 @@
     const img = document.getElementById('bouquet-img');
     if (!img) return;
 
+    // Style hiện tại cho PNG (user chọn qua .style-chip)
+    let currentStyle = 'magazine';
+
     // ---- Helpers --------------------------------------------------------
     const FONT_DISPLAY = '"Cormorant Garamond", "Times New Roman", serif';
     const FONT_SCRIPT = '"Dancing Script", "Brush Script MT", cursive';
@@ -155,10 +158,37 @@
     function ensureImageReady(src) {
       return new Promise((resolve, reject) => {
         const test = new Image();
+        // Bắt buộc set crossOrigin TRƯỚC khi gán src, nếu không canvas sẽ bị
+        // "tainted" và toDataURL/toBlob ném SecurityError.
+        test.crossOrigin = 'anonymous';
         test.onload = () => resolve(test);
         test.onerror = () => reject(new Error('Không tải được ảnh hoa'));
         test.src = src;
       });
+    }
+
+    // Load ảnh cho canvas: thử crossOrigin (để export PNG được), nếu server
+    // không trả CORS header thì fallback về load thường (canvas vẫn vẽ được,
+    // chỉ kém khả năng export). Ưu tiên URL tương đối từ attribute.
+    function loadCanvasSafeImage(el) {
+      const raw =
+        (el && el.getAttribute && el.getAttribute('src')) ||
+        (el && el.dataset && el.dataset.src) ||
+        (el && el.src) ||
+        '';
+      if (!raw) return Promise.reject(new Error('Không tìm thấy ảnh hoa'));
+
+      const tryLoad = (withCors) =>
+        new Promise((resolve, reject) => {
+          const im = new Image();
+          if (withCors) im.crossOrigin = 'anonymous';
+          im.onload = () => resolve(im);
+          im.onerror = () => reject(new Error('Ảnh lỗi'));
+          im.src = raw;
+        });
+
+      return tryLoad(true)
+        .catch(() => tryLoad(false));
     }
 
     function safeFilename(name) {
@@ -193,281 +223,765 @@
       el._t = setTimeout(() => el.classList.remove('show'), 2400);
     }
 
+/* ============================================================
+       Postcard canvas — 3 style (magazine / romantic / minimal)
+       Dùng "vertical box flow": mỗi box đo chiều cao thực tế rồi
+       xếp nối xuống dưới, nên không bao giờ có chữ chồng nhau.
+       ============================================================ */
+
+    // Chạy 1 chuỗi box dọc: cursorY bắt đầu từ startY, mỗi box cách
+    // box trước đúng gap của nó và trả về chiều cao đã dùng.
+    function flowBoxes(ctx, boxes, x, startY, w) {
+      let cursorY = startY;
+      for (const box of boxes) {
+        if (box.gap) cursorY += typeof box.gap === 'function' ? box.gap() : box.gap;
+        cursorY += box.render(ctx, x, cursorY, w);
+      }
+      return cursorY;
+    }
+
+    // Đo tổng chiều cao một chuỗi box mà KHÔNG vẽ gì lên canvas.
+    // Dùng để biết trước nội dung có vừa khung không, rồi mới quyết định co.
+    function measureBoxes(boxes, availableH) {
+      let total = 0;
+      for (const box of boxes) {
+        if (box.gap) total += typeof box.gap === 'function' ? box.gap() : box.gap;
+        total += box.measure(availableH);
+      }
+      return total;
+    }
+
+    // Canvas ẩn dùng riêng cho việc đo chữ (không vẽ ra màn hình).
+    // Tách riêng để phép đo không phụ thuộc font/state của canvas chính.
+    let measureCtx = null;
+    function getMeasureCtx() {
+      if (!measureCtx) {
+        measureCtx = document.createElement('canvas').getContext('2d');
+      }
+      return measureCtx;
+    }
+
+    // Nền + tấm card trung tâm (dùng chung cho magazine & vintage)
+    function paintCard(ctx, theme) {
+      const W = ctx.canvas.width, H = ctx.canvas.height;
+      const bg = ctx.createLinearGradient(0, 0, 0, H);
+      bg.addColorStop(0, theme.bgTop);
+      bg.addColorStop(0.5, theme.bgMid);
+      bg.addColorStop(1, theme.bgBot);
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.save();
+      ctx.shadowColor = theme.card.shadow;
+      ctx.shadowBlur = theme.card.shadowBlur;
+      ctx.shadowOffsetY = theme.card.shadowOffsetY;
+      roundRect(ctx, theme.outerX, theme.outerY, theme.outerW, theme.outerH, theme.card.radius);
+      const cg = ctx.createLinearGradient(0, theme.outerY, 0, theme.outerY + theme.outerH);
+      cg.addColorStop(0, theme.card.top);
+      cg.addColorStop(1, theme.card.bot);
+      ctx.fillStyle = cg;
+      ctx.fill();
+      ctx.restore();
+    }
+
     /**
-     * Vẽ postcard ra canvas 1080x1350 (tỉ lệ 4:5 — Instagram-friendly).
+     * Vẽ postcard ra canvas theo style hiện tại.
      * Trả về Promise<HTMLCanvasElement>.
      */
     async function renderPostcardToCanvas() {
-      const W = 1080;
-      const H = 1700;
-      const canvas = document.createElement('canvas');
-      canvas.width = W;
-      canvas.height = H;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Trình duyệt không hỗ trợ Canvas');
-
-      const name = getRecipientName();
-
-      // Đợi fonts sẵn sàng
       await Promise.all([
         ensureFontLoaded(FONT_DISPLAY),
         ensureFontLoaded(FONT_SCRIPT),
         ensureFontLoaded(FONT_BODY),
       ]);
+      const bouquetImg = await loadCanvasSafeImage(img);
+      const name = getRecipientName();
 
-      const imgSrc = img.src || img.dataset.src;
-      if (!imgSrc) throw new Error('Không tìm thấy ảnh hoa');
-      const bouquetImg = await ensureImageReady(imgSrc);
+      if (currentStyle === 'romantic') return renderRomantic(bouquetImg, name);
+      if (currentStyle === 'minimal') return renderMinimal(bouquetImg, name);
+      return renderMagazine(bouquetImg, name);
+    }
 
-      // ---- Bước 1: Nền pastel gradient ----------------------------------
-      const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
-      bgGrad.addColorStop(0, '#fff8f5');
-      bgGrad.addColorStop(0.5, '#fff0f5');
-      bgGrad.addColorStop(1, '#fbe6ee');
-      ctx.fillStyle = bgGrad;
-      ctx.fillRect(0, 0, W, H);
+    /* ============================================================
+       STYLE 1 — TẠP CHÍ SANG TRỌNG (Magazine)
+       ============================================================ */
+    function renderMagazine(bouquetImg, name) {
+      const W = 1080, H = 1920;
+      const canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
 
-      // ---- Bước 2: Khung postcard (bo tròn) ----------------------------
-      const outerX = 40, outerY = 40, outerR = 50;
-      const outerW = W - 80;
-      const outerH = H - 80;
-
-      // Outer card (gradient đậm hơn)
-      const cardGrad = ctx.createLinearGradient(0, outerY, 0, outerY + outerH);
-      cardGrad.addColorStop(0, '#ffeaf0');
-      cardGrad.addColorStop(1, '#fbdde6');
-      roundRect(ctx, outerX, outerY, outerW, outerH, outerR);
-      ctx.fillStyle = cardGrad;
-      ctx.fill();
+      const theme = {
+        bgTop: '#fff6f8', bgMid: '#ffeef3', bgBot: '#fde0ea',
+        outerX: 50, outerY: 50, outerW: W - 100, outerH: H - 100,
+        card: { top: '#ffffff', bot: '#fff7fa', radius: 64, shadow: 'rgba(190, 60, 110, 0.18)', shadowBlur: 60, shadowOffsetY: 20 },
+      };
+      paintCard(ctx, theme);
+      drawSoftBlob(ctx, 120, -60, 480, '#ffd6e7', 0.55);
+      drawSoftBlob(ctx, W - 60, H - 80, 520, '#ffc1d4', 0.45);
 
       // Viền dashed
+      const innerPad = 32;
+      const innerX = theme.outerX + innerPad;
+      const innerY = theme.outerY + innerPad;
+      const innerW = theme.outerW - innerPad * 2;
+      const innerH = theme.outerH - innerPad * 2;
       ctx.save();
-      ctx.lineWidth = 3;
-      ctx.setLineDash([10, 12]);
-      ctx.strokeStyle = 'rgba(198, 58, 114, 0.55)';
-      const innerX = outerX + 28, innerY = outerY + 28;
-      const innerW = outerW - 56, innerH = outerH - 56;
-      roundRect(ctx, innerX, innerY, innerW, innerH, 36);
-      ctx.stroke();
-      ctx.restore();
-
-      // 4 góc hoa ✿
-      drawCornerDeco(ctx, '✿', innerX + 24, innerY + 24);
-      drawCornerDeco(ctx, '✿', innerX + innerW - 24, innerY + 24, { align: 'right' });
-      drawCornerDeco(ctx, '✿', innerX + 24, innerY + innerH - 24, { baseline: 'bottom' });
-      drawCornerDeco(ctx, '✿', innerX + innerW - 24, innerY + innerH - 24, { align: 'right', baseline: 'bottom' });
-
-      // ---- Bước 3: Header -----------------------------------------------
-      const headerY = outerY + 80;
-      const headerH = 90;
-
-      // Stamp trái (gradient + hoa hồng emoji)
-      const stampX = innerX + 50;
-      const stampY = headerY;
-      const stampSize = 96;
-      const stampGrad = ctx.createLinearGradient(stampX, stampY, stampX + stampSize, stampY + stampSize);
-      stampGrad.addColorStop(0, '#ffd6e0');
-      stampGrad.addColorStop(1, '#ffb3c8');
-      ctx.save();
-      ctx.translate(stampX + stampSize / 2, stampY + stampSize / 2);
-      ctx.rotate(-6 * Math.PI / 180);
-      ctx.translate(-(stampX + stampSize / 2), -(stampY + stampSize / 2));
-      roundRect(ctx, stampX, stampY, stampSize, stampSize, 18);
-      ctx.fillStyle = stampGrad;
-      ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.font = '60px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('🌹', stampX + stampSize / 2, stampY + stampSize / 2 + 4);
-      ctx.restore();
-
-      // Meta text giữa
-      ctx.fillStyle = '#b7306a';
-      ctx.font = `600 30px ${FONT_DISPLAY}`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText("Happy Vietnamese Women's Day", innerX + innerW / 2, headerY + 36);
-
-      ctx.fillStyle = '#c63a72';
-      ctx.font = `700 38px ${FONT_DISPLAY}`;
-      ctx.fillText('20 . 10 . 2026', innerX + innerW / 2, headerY + 76);
-
-      // Đường gạch chân header
-      ctx.save();
-      ctx.setLineDash([]);
-      ctx.strokeStyle = 'rgba(198, 58, 114, 0.25)';
+      ctx.setLineDash([6, 10]);
       ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(innerX + 200, headerY + 130);
-      ctx.lineTo(innerX + innerW - 200, headerY + 130);
-      ctx.stroke();
-      ctx.restore();
-
-      // Tag đỏ góc phải
-      const tagText = 'SPECIAL DAY';
-      ctx.font = `700 26px ${FONT_DISPLAY}`;
-      const tagW = ctx.measureText(tagText).width + 36;
-      const tagH = 44;
-      const tagX = innerX + innerW - 50 - tagW;
-      const tagY = headerY + 20;
-      const tagGrad = ctx.createLinearGradient(tagX, tagY, tagX, tagY + tagH);
-      tagGrad.addColorStop(0, '#c63a72');
-      tagGrad.addColorStop(1, '#a02e5b');
-      roundRect(ctx, tagX, tagY, tagW, tagH, 10);
-      ctx.fillStyle = tagGrad;
-      ctx.fill();
-      // Dot trắng
-      ctx.beginPath();
-      ctx.arc(tagX + 14, tagY + tagH / 2, 5, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffd6e0';
-      ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.textAlign = 'left';
-      ctx.font = `700 24px ${FONT_DISPLAY}`;
-      ctx.fillText(tagText, tagX + 28, tagY + tagH / 2 + 1);
-
-      // ---- Bước 4: Ảnh bó hoa ------------------------------------------
-      const photoX = innerX + 80;
-      const photoY = headerY + 180;
-      const photoW = innerW - 200;
-      const photoSize = photoW; // vuông
-      // Inner border trắng (khung trắng bao quanh ảnh)
-      ctx.save();
-      roundRect(ctx, photoX - 12, photoY - 12, photoSize + 24, photoSize + 24, 22);
-      ctx.fillStyle = '#fff';
-      ctx.fill();
-      ctx.restore();
-
-      // Tô nền pastel đẹp cho ảnh (phòng khi ảnh contain không lấp đầy khung)
-      ctx.save();
-      roundRect(ctx, photoX, photoY, photoSize, photoSize, 14);
-      ctx.fillStyle = '#fff5f7';
-      ctx.fill();
-      ctx.restore();
-
-      // Clip ảnh theo rounded rect, chừa border trắng
-      ctx.save();
-      roundRect(ctx, photoX + 4, photoY + 4, photoSize - 8, photoSize - 8, 10);
-      ctx.clip();
-      drawCoverImage(ctx, bouquetImg, photoX + 4, photoY + 4, photoSize - 8, photoSize - 8);
-      ctx.restore();
-
-      // Overlay caption "Một bó hoa được kết từ rất nhiều yêu thương"
-      const captionText = 'Một bó hoa được kết từ rất nhiều yêu thương';
-      ctx.font = `italic 500 30px ${FONT_SCRIPT}`;
-      const capW = ctx.measureText(captionText).width + 80;
-      const capH = 56;
-      const capX = photoX + photoSize / 2 - capW / 2;
-      const capY = photoY + photoSize - capH - 22;
-      ctx.save();
-      roundRect(ctx, capX, capY, capW, capH, capH / 2);
-      ctx.fillStyle = 'rgba(40, 12, 25, 0.62)';
-      ctx.fill();
-      // ✦ ✦
-      ctx.fillStyle = '#ffd6e0';
-      ctx.font = '24px serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('✦', capX + 22, capY + capH / 2);
-      ctx.fillText('✦', capX + capW - 22, capY + capH / 2);
-      // Text
-      ctx.fillStyle = '#fff5f7';
-      ctx.font = `italic 500 30px ${FONT_SCRIPT}`;
-      ctx.fillText(captionText, capX + capW / 2, capY + capH / 2 + 2);
-      ctx.restore();
-
-      // ---- Bước 5: Lời chúc -------------------------------------------
-      const msgY = photoY + photoSize + 60;
-      // "— Gửi đến —"
-      ctx.fillStyle = '#c47190';
-      ctx.font = `italic 500 38px ${FONT_SCRIPT}`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      ctx.fillText('— Gửi đến —', innerX + innerW / 2, msgY);
-
-      // Tên người nhận (to đậm, viền pill vàng)
-      ctx.font = `700 76px ${FONT_DISPLAY}`;
-      const nameW = ctx.measureText(name).width;
-      const nameBoxW = Math.min(Math.max(nameW + 100, innerW - 200), innerW - 80);
-      const nameBoxH = 110;
-      const nameBoxX = innerX + innerW / 2 - nameBoxW / 2;
-      const nameBoxY = msgY + 58;
-      const nameGrad = ctx.createLinearGradient(0, nameBoxY, 0, nameBoxY + nameBoxH);
-      nameGrad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
-      nameGrad.addColorStop(1, 'rgba(255, 246, 240, 0.95)');
-      roundRect(ctx, nameBoxX, nameBoxY, nameBoxW, nameBoxH, 22);
-      ctx.fillStyle = nameGrad;
-      ctx.fill();
-      ctx.strokeStyle = '#f4d35e';
-      ctx.lineWidth = 4;
-      ctx.stroke();
-      // Tên
-      ctx.fillStyle = '#c63a72';
-      ctx.font = `700 64px ${FONT_DISPLAY}`;
-      ctx.textBaseline = 'middle';
-      ctx.fillText(name, innerX + innerW / 2, nameBoxY + nameBoxH / 2);
-
-      // Lời chúc với 🌷 hai bên
-      const wishText1 = '🌷  Chúc ' + name + ' một ngày 20/10';
-      const wishText2 = 'thật ý nghĩa, tràn đầy hoa và yêu thương  🌷';
-      ctx.font = `italic 500 38px ${FONT_SCRIPT}`;
-      ctx.fillStyle = '#5a3045';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      const wishY = nameBoxY + nameBoxH + 44;
-      // Đo từng dòng — nếu dài, wrap đơn giản
-      const maxWishWidth = innerW - 180;
-      const lines1 = wrapLines(ctx, wishText1, maxWishWidth);
-      const lines2 = wrapLines(ctx, wishText2, maxWishWidth);
-      const wishLineHeight = 56;
-      let lineY = wishY;
-      lines1.forEach((ln) => { ctx.fillText(ln, innerX + innerW / 2, lineY); lineY += wishLineHeight; });
-      lines2.forEach((ln) => { ctx.fillText(ln, innerX + innerW / 2, lineY); lineY += wishLineHeight; });
-      // wishTotalHeight = (số dòng thực tế) * wishLineHeight, sau lineY
-      const wishActualHeight = lineY - wishY;
-
-      // ---- Bước 6: Footer ----------------------------------------------
-      // Footer đặt SAU wish text với buffer đủ lớn — không bao giờ đè lên
-      // wish hay nameBox. Nếu thiếu chỗ, đẩy footer xuống (không bao giờ lên).
-      const wishEnd = wishY + wishActualHeight;
-      const footerGap = 70;
-      const footerY = wishEnd + footerGap;
-      // Đảm bảo footer vẫn nằm gọn trong postcard (buffer dưới 60px)
-      const maxFooterY = H - 100;
-      const safeFooterY = Math.min(footerY, maxFooterY);
-
-      // Hai gạch ngang hai bên
-      const footText = 'Với tất cả yêu thương & trân trọng';
-      ctx.font = `italic 500 32px ${FONT_SCRIPT}`;
-      const ftW = ctx.measureText(footText).width;
-      const lineLen = 60;
-      const gap = 24; // khoảng cách giữa line và text
-      const totalW = lineLen * 2 + gap * 2 + ftW;
-
-      ctx.save();
       ctx.strokeStyle = 'rgba(198, 58, 114, 0.5)';
-      ctx.lineWidth = 2;
-      const startX = innerX + innerW / 2 - totalW / 2;
-      const lineMid = safeFooterY + 18;
-      ctx.beginPath();
-      ctx.moveTo(startX, lineMid);
-      ctx.lineTo(startX + lineLen, lineMid);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(startX + lineLen + gap * 2 + ftW, lineMid);
-      ctx.lineTo(startX + lineLen + gap * 2 + ftW + lineLen, lineMid);
+      roundRect(ctx, innerX, innerY, innerW, innerH, 48);
       ctx.stroke();
       ctx.restore();
 
-      // Text baseline middle, vẽ đúng vị trí
-      ctx.fillStyle = '#8a5a72';
-      ctx.font = `italic 500 32px ${FONT_SCRIPT}`;
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(footText, startX + lineLen + gap, lineMid);
+      const x = innerX + 30;
+      const w = innerW - 60;
+      const top = innerY + 44;
+      const availH = innerY + innerH - top - 40;
+
+      // Hệ số co — tính sau khi có boxes, áp dụng cho mọi kích thước bên dưới
+      let K = 1;
+      const S = (v) => Math.round(v * K);
+
+      const boxes = [
+        // "— dành tặng bạn —"
+        {
+          measure: () => S(44),
+          render: (c, bx, by, bw) => {
+            const h = S(44);
+            c.font = 'italic 500 ' + S(34) + 'px ' + FONT_SCRIPT;
+            c.fillStyle = '#c47190';
+            c.textAlign = 'center';
+            c.textBaseline = 'middle';
+            c.fillText('— dành tặng bạn —', bx + bw / 2, by + h / 2);
+            return h;
+          },
+        },
+        // Title 2 dòng
+        {
+          gap: () => S(38),
+          measure: () => S(82) * 2,
+          render: (c, bx, by, bw) => {
+            const lh = S(82);
+            c.font = 'italic 600 ' + S(62) + 'px ' + FONT_DISPLAY;
+            c.fillStyle = '#b7306a';
+            c.textAlign = 'center';
+            c.textBaseline = 'middle';
+            c.fillText('Happy Vietnamese', bx + bw / 2, by + lh / 2);
+            c.fillText("Women's Day", bx + bw / 2, by + lh + lh / 2);
+            return lh * 2;
+          },
+        },
+        // Date lớn + gạch chân
+        {
+          gap: () => S(34),
+          measure: () => S(132) + S(34),
+          render: (c, bx, by, bw) => {
+            const dateH = S(132);
+            c.font = '700 ' + S(118) + 'px ' + FONT_DISPLAY;
+            c.fillStyle = '#c63a72';
+            c.textAlign = 'center';
+            c.textBaseline = 'middle';
+            c.save();
+            c.shadowColor = 'rgba(198, 58, 114, 0.22)';
+            c.shadowBlur = 26 * K;
+            c.fillText('20 . 10 . 2026', bx + bw / 2, by + dateH / 2);
+            c.restore();
+            const lineY = by + dateH + S(16);
+            const g = c.createLinearGradient(bx + 60, 0, bx + bw - 60, 0);
+            g.addColorStop(0, 'rgba(232, 90, 140, 0)');
+            g.addColorStop(0.5, 'rgba(232, 90, 140, 0.8)');
+            g.addColorStop(1, 'rgba(232, 90, 140, 0)');
+            c.save();
+            c.strokeStyle = g;
+            c.lineWidth = Math.max(2, 3 * K);
+            c.beginPath();
+            c.moveTo(bx + 60, lineY);
+            c.lineTo(bx + bw - 60, lineY);
+            c.stroke();
+            c.restore();
+            return dateH + S(34);
+          },
+        },
+        // SPECIAL DAY badge
+        {
+          gap: () => S(34),
+          measure: () => S(54),
+          render: (c, bx, by, bw) => {
+            const text = 'SPECIAL DAY';
+            c.font = '700 ' + S(30) + 'px ' + FONT_DISPLAY;
+            const tw = c.measureText(text).width + S(56);
+            const th = S(54);
+            const tx = bx + bw / 2 - tw / 2;
+            const g = c.createLinearGradient(tx, by, tx + tw, by + th);
+            g.addColorStop(0, '#c63a72');
+            g.addColorStop(1, '#a02e5b');
+            roundRect(c, tx, by, tw, th, th / 2);
+            c.fillStyle = g;
+            c.fill();
+            c.fillStyle = '#fff';
+            c.textAlign = 'center';
+            c.textBaseline = 'middle';
+            c.font = '700 ' + S(28) + 'px ' + FONT_DISPLAY;
+            c.fillText(text, bx + bw / 2, by + th / 2 + 1);
+            return th;
+          },
+        },
+        // Ảnh hoa vuông + caption pill bên dưới
+        {
+          gap: () => S(40),
+          measure: () => Math.min(w, S(620)) + S(18) + S(58),
+          render: (c, bx, by, bw) => {
+            // Ảnh vuông, co theo bề rộng
+            const size = Math.min(bw, S(620));
+            const px = bx + bw / 2 - size / 2;
+            c.save();
+            c.shadowColor = 'rgba(0, 0, 0, 0.16)';
+            c.shadowBlur = 36 * K;
+            c.shadowOffsetY = 12 * K;
+            roundRect(c, px, by, size, size, 30 * K);
+            c.fillStyle = '#fff';
+            c.fill();
+            c.restore();
+            c.save();
+            roundRect(c, px, by, size, size, 30 * K);
+            c.strokeStyle = '#f4d35e';
+            c.lineWidth = Math.max(3, 6 * K);
+            c.stroke();
+            c.restore();
+            c.save();
+            roundRect(c, px + 10, by + 10, size - 20, size - 20, 22 * K);
+            c.clip();
+            drawCoverImage(c, bouquetImg, px + 10, by + 10, size - 20, size - 20);
+            c.restore();
+            const capText = 'Một bó hoa kết từ rất nhiều yêu thương';
+            c.font = 'italic 500 ' + S(30) + 'px ' + FONT_SCRIPT;
+            const capW = c.measureText(capText).width + S(72);
+            const capH = S(58);
+            const capX = bx + bw / 2 - capW / 2;
+            const capY = by + size + S(18);
+            c.save();
+            roundRect(c, capX, capY, capW, capH, capH / 2);
+            const cg = c.createLinearGradient(capX, capY, capX, capY + capH);
+            cg.addColorStop(0, 'rgba(60, 20, 38, 0.9)');
+            cg.addColorStop(1, 'rgba(40, 12, 25, 0.82)');
+            c.fillStyle = cg;
+            c.fill();
+            c.fillStyle = '#ffd6e0';
+            c.font = S(22) + 'px serif';
+            c.textAlign = 'center';
+            c.textBaseline = 'middle';
+            c.fillText('✦', capX + S(20), capY + capH / 2);
+            c.fillText('✦', capX + capW - S(20), capY + capH / 2);
+            c.fillStyle = '#fff5f7';
+            c.font = 'italic 500 ' + S(30) + 'px ' + FONT_SCRIPT;
+            c.fillText(capText, capX + capW / 2, capY + capH / 2 + 2);
+            c.restore();
+            return size + S(18) + capH;
+          },
+        },
+        // Lời chúc
+        {
+          gap: () => S(46),
+          measure: () => {
+            const ctx2 = getMeasureCtx();
+            ctx2.font = 'italic 500 ' + S(36) + 'px ' + FONT_SCRIPT;
+            const labelH = S(52);
+            const nameH = S(96) + S(22);
+            const wf = S(40);
+            ctx2.font = 'italic 500 ' + wf + 'px ' + FONT_SCRIPT;
+            const lh = wf * 1.45;
+            const lines = wrapLines(ctx2, 'Chúc ' + name + ' một ngày 20/10 thật ý nghĩa, tràn đầy hoa và yêu thương', w - S(10));
+            return labelH + nameH + lh * lines.length;
+          },
+          render: (c, bx, by, bw) => {
+            let cur = by;
+            c.font = 'italic 500 ' + S(36) + 'px ' + FONT_SCRIPT;
+            c.fillStyle = '#c47190';
+            c.textAlign = 'center';
+            c.textBaseline = 'middle';
+            c.fillText('— Gửi đến —', bx + bw / 2, cur + S(22));
+            cur += S(52);
+            // Tên — tự co nếu quá dài
+            const nameH = S(96);
+            let nf = S(78);
+            c.font = '700 ' + nf + 'px ' + FONT_DISPLAY;
+            while (c.measureText(name).width > bw && nf > S(28)) {
+              nf -= 4;
+              c.font = '700 ' + nf + 'px ' + FONT_DISPLAY;
+            }
+            const nGrad = c.createLinearGradient(0, cur, 0, cur + nameH);
+            nGrad.addColorStop(0, '#c63a72');
+            nGrad.addColorStop(1, '#a02e5b');
+            c.fillStyle = nGrad;
+            c.fillText(name, bx + bw / 2, cur + nameH / 2);
+            cur += nameH + S(22);
+            // Lời chúc — wrap theo font thực tế
+            const wf = S(40);
+            const lh = wf * 1.45;
+            c.font = 'italic 500 ' + wf + 'px ' + FONT_SCRIPT;
+            c.fillStyle = '#5a3045';
+            const lines = wrapLines(c, 'Chúc ' + name + ' một ngày 20/10 thật ý nghĩa, tràn đầy hoa và yêu thương', bw - S(10));
+            for (const ln of lines) {
+              c.fillText(ln, bx + bw / 2, cur + lh / 2);
+              cur += lh;
+            }
+            return cur - by;
+          },
+        },
+        // Footer
+        {
+          gap: () => S(44),
+          measure: () => S(44),
+          render: (c, bx, by, bw) => {
+            const h = S(44);
+            const footText = 'Với tất cả yêu thương & trân trọng';
+            c.font = 'italic 500 ' + S(36) + 'px ' + FONT_SCRIPT;
+            const ftW = c.measureText(footText).width;
+            const lineLen = S(62);
+            const gap = S(24);
+            const totalW = lineLen * 2 + gap * 2 + ftW;
+            const sx = bx + bw / 2 - totalW / 2;
+            const mid = by + h / 2;
+            c.save();
+            c.strokeStyle = 'rgba(198, 58, 114, 0.5)';
+            c.lineWidth = Math.max(2, 2 * K);
+            c.beginPath();
+            c.moveTo(sx, mid);
+            c.lineTo(sx + lineLen, mid);
+            c.stroke();
+            c.beginPath();
+            c.moveTo(sx + lineLen + gap * 2 + ftW, mid);
+            c.lineTo(sx + lineLen + gap * 2 + ftW + lineLen, mid);
+            c.stroke();
+            c.restore();
+            c.fillStyle = '#8a5a72';
+            c.textAlign = 'left';
+            c.textBaseline = 'middle';
+            c.fillText(footText, sx + lineLen + gap, mid);
+            return h;
+          },
+        },
+      ];
+
+      // 2-pass: đo ở K=1, tính K để vừa khung, đo lại xác nhận.
+      // Vòng lặp tối đa 6 lần để hội tụ (measure có phụ thuộc K).
+      for (let pass = 0; pass < 6; pass++) {
+        const total = measureBoxes(boxes, availH);
+        if (total <= availH) break;
+        K = Math.max(0.55, K * (availH / total));
+      }
+
+      flowBoxes(ctx, boxes, x, top, w);
+
+      drawCornerDeco(ctx, '✿', innerX + 34, innerY + innerH - 34, { baseline: 'bottom' });
+      drawCornerDeco(ctx, '✿', innerX + innerW - 34, innerY + innerH - 34, { align: 'right', baseline: 'bottom' });
 
       return canvas;
+    }
+
+    /* ============================================================
+       STYLE 2 — LÃNG MẠN CỐ ĐIỂN (Vintage)
+       ============================================================ */
+    function renderRomantic(bouquetImg, name) {
+      const W = 1080, H = 1920;
+      const canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+
+      const theme = {
+        bgTop: '#fbf0e6', bgMid: '#f6e3d3', bgBot: '#efd2c0',
+        outerX: 60, outerY: 60, outerW: W - 120, outerH: H - 120,
+        card: { top: '#fff7ec', bot: '#f8e4d2', radius: 56, shadow: 'rgba(140, 80, 50, 0.25)', shadowBlur: 50, shadowOffsetY: 14 },
+      };
+      paintCard(ctx, theme);
+      // Texture giấy, clip trong card
+      ctx.save();
+      roundRect(ctx, theme.outerX, theme.outerY, theme.outerW, theme.outerH, theme.card.radius);
+      ctx.clip();
+      for (let i = 0; i < 700; i++) {
+        ctx.fillStyle = 'rgba(160, 100, 70, ' + Math.random() * 0.045 + ')';
+        ctx.fillRect(
+          theme.outerX + Math.random() * theme.outerW,
+          theme.outerY + Math.random() * theme.outerH,
+          2, 2
+        );
+      }
+      ctx.restore();
+      // Viền ren
+      ctx.save();
+      ctx.strokeStyle = 'rgba(140, 70, 50, 0.65)';
+      ctx.lineWidth = 4;
+      roundRect(ctx, theme.outerX + 30, theme.outerY + 30, theme.outerW - 60, theme.outerH - 60, 44);
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(140, 70, 50, 0.35)';
+      ctx.lineWidth = 1.5;
+      roundRect(ctx, theme.outerX + 44, theme.outerY + 44, theme.outerW - 88, theme.outerH - 88, 36);
+      ctx.stroke();
+      ctx.restore();
+      // Decor góc
+      drawVintageCorner(ctx, theme.outerX + 74, theme.outerY + 74);
+      drawVintageCorner(ctx, theme.outerX + theme.outerW - 74, theme.outerY + 74, { flipX: true });
+      drawVintageCorner(ctx, theme.outerX + 74, theme.outerY + theme.outerH - 74, { flipY: true });
+      drawVintageCorner(ctx, theme.outerX + theme.outerW - 74, theme.outerY + theme.outerH - 74, { flipX: true, flipY: true });
+
+      const x = theme.outerX + 86;
+      const w = theme.outerW - 172;
+
+      const boxes = [
+        // Ribbon date
+        {
+          render: (c, bx, by, bw) => {
+            const rh = 104;
+            const rw = bw - 40;
+            const rx = bx + 20;
+            const g = c.createLinearGradient(0, by, 0, by + rh);
+            g.addColorStop(0, '#8b3a52');
+            g.addColorStop(1, '#6b2738');
+            c.save();
+            c.fillStyle = g;
+            drawRibbon(c, rx, by, rw, rh);
+            c.restore();
+            c.fillStyle = '#fff5ec';
+            c.font = 'italic 600 54px ' + FONT_DISPLAY;
+            c.textAlign = 'center';
+            c.textBaseline = 'middle';
+            c.fillText('20  ·  10  ·  2026', rx + rw / 2, by + rh / 2);
+            return rh + 10;
+          },
+        },
+        // Subtitle
+        {
+          gap: 26,
+          render: (c, bx, by, bw) => {
+            const h = 40;
+            c.font = 'italic 500 36px ' + FONT_SCRIPT;
+            c.fillStyle = '#8b3a52';
+            c.textAlign = 'center';
+            c.textBaseline = 'middle';
+            c.fillText("— Vietnamese Women's Day —", bx + bw / 2, by + h / 2);
+            return h;
+          },
+        },
+        // Polaroid nghiêng, caption nằm trong phần trắng dưới ảnh
+        {
+          gap: 44,
+          render: (c, bx, by, bw) => {
+            const pad = 26;
+            const capH = 48;
+            const size = Math.min(bw - 70, 580);
+            const frameH = size + pad * 2 + capH;
+            const px = bx + bw / 2 - size / 2;
+            const frameY = by;
+            const cx = px + size / 2;
+            const cy = frameY + pad + size / 2;
+            const tilt = -3 * Math.PI / 180;
+            c.save();
+            c.translate(cx, cy);
+            c.rotate(tilt);
+            c.translate(-cx, -cy);
+            c.shadowColor = 'rgba(80, 40, 30, 0.32)';
+            c.shadowBlur = 30;
+            c.shadowOffsetY = 12;
+            roundRect(c, px - pad, frameY, size + pad * 2, frameH, 6);
+            c.fillStyle = '#fffaf0';
+            c.fill();
+            c.restore();
+            c.save();
+            c.translate(cx, cy);
+            c.rotate(tilt);
+            c.translate(-cx, -cy);
+            roundRect(c, px - pad + 4, frameY + 4, size + pad * 2 - 8, frameH - 8, 4);
+            c.strokeStyle = 'rgba(140, 70, 50, 0.32)';
+            c.lineWidth = 1.5;
+            c.stroke();
+            roundRect(c, px, frameY + pad, size, size, 3);
+            c.clip();
+            drawCoverImage(c, bouquetImg, px, frameY + pad, size, size);
+            c.restore();
+            c.save();
+            c.translate(cx, cy);
+            c.rotate(tilt);
+            c.translate(-cx, -cy);
+            c.fillStyle = '#8b3a52';
+            c.font = 'italic 500 30px ' + FONT_SCRIPT;
+            c.textAlign = 'center';
+            c.textBaseline = 'middle';
+            c.fillText('~ một bó hoa, một tấm chân tình ~', cx, frameY + pad + size + capH / 2);
+            c.restore();
+            return frameH + 14;
+          },
+        },
+        // Lời chúc
+        {
+          gap: 48,
+          render: (c, bx, by, bw) => {
+            let cur = by;
+            c.font = 'italic 500 36px ' + FONT_SCRIPT;
+            c.fillStyle = '#6b2738';
+            c.textAlign = 'center';
+            c.textBaseline = 'middle';
+            c.fillText('— Gửi đến —', bx + bw / 2, cur + 22);
+            cur += 54;
+            // Tên — tự co nếu dài
+            const nameH = 96;
+            let nf = 84;
+            c.font = '700 ' + nf + 'px ' + FONT_DISPLAY;
+            while (c.measureText(name).width > bw && nf > 40) {
+              nf -= 4;
+              c.font = '700 ' + nf + 'px ' + FONT_DISPLAY;
+            }
+            const nGrad = c.createLinearGradient(0, cur, 0, cur + nameH);
+            nGrad.addColorStop(0, '#8b3a52');
+            nGrad.addColorStop(1, '#6b2738');
+            c.fillStyle = nGrad;
+            c.fillText(name, bx + bw / 2, cur + nameH / 2);
+            cur += nameH + 22;
+            const wf = 40;
+            const lh = wf * 1.45;
+            c.font = 'italic 500 ' + wf + 'px ' + FONT_SCRIPT;
+            c.fillStyle = '#5a2030';
+            const lines = wrapLines(c, 'Chúc ' + name + ' một ngày 20/10 thật ý nghĩa, tràn đầy hoa và yêu thương', bw - 10);
+            for (const ln of lines) {
+              c.fillText(ln, bx + bw / 2, cur + lh / 2);
+              cur += lh;
+            }
+            return cur - by;
+          },
+        },
+        // Ribbon footer
+        {
+          gap: 48,
+          render: (c, bx, by, bw) => {
+            const rh = 76;
+            const rw = bw - 60;
+            const rx = bx + 30;
+            const g = c.createLinearGradient(0, by, 0, by + rh);
+            g.addColorStop(0, '#8b3a52');
+            g.addColorStop(1, '#6b2738');
+            c.save();
+            c.fillStyle = g;
+            drawRibbon(c, rx, by, rw, rh);
+            c.restore();
+            c.fillStyle = '#fff5ec';
+            c.font = 'italic 500 36px ' + FONT_SCRIPT;
+            c.textAlign = 'center';
+            c.textBaseline = 'middle';
+            c.fillText('Với tất cả yêu thương & trân trọng', rx + rw / 2, by + rh / 2);
+            return rh + 10;
+          },
+        },
+      ];
+
+      flowBoxes(ctx, boxes, x, theme.outerY + 92, w);
+
+      return canvas;
+    }
+
+    /* ============================================================
+       STYLE 3 — TỐI GIẢN HIỆN ĐẠI (Minimal)
+       ============================================================ */
+    function renderMinimal(bouquetImg, name) {
+      const W = 1080, H = 1920;
+      const canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#fbfbfb';
+      ctx.fillRect(0, 0, W, H);
+      const ag = ctx.createLinearGradient(0, 0, 0, H);
+      ag.addColorStop(0, '#e85a8c');
+      ag.addColorStop(1, '#c63a72');
+      ctx.fillStyle = ag;
+      ctx.fillRect(0, 0, 12, H);
+
+      const x = 108;
+      const w = W - 108 - 92;
+      const top = 136;
+
+      const boxes = [
+        // Eyebrow
+        {
+          render: (c, bx, by, bw) => {
+            const h = 30;
+            c.font = '600 26px ' + FONT_BODY;
+            c.fillStyle = '#e85a8c';
+            c.textAlign = 'left';
+            c.textBaseline = 'middle';
+            c.fillText('20 . 10 . 2026 · SPECIAL DAY', bx, by + h / 2);
+            return h;
+          },
+        },
+        // Title 3 dòng — cỡ chữ to
+        {
+          gap: 34,
+          render: (c, bx, by, bw) => {
+            const tSize = 98;
+            const lh = tSize * 1.22;
+            c.textAlign = 'left';
+            c.textBaseline = 'middle';
+            c.fillStyle = '#1a1a1a';
+            c.font = '700 ' + tSize + 'px ' + FONT_DISPLAY;
+            c.fillText('Happy', bx, by + lh * 0.5);
+            c.fillStyle = '#e85a8c';
+            c.font = 'italic 700 ' + tSize + 'px ' + FONT_DISPLAY;
+            c.fillText("Vietnamese Women's", bx, by + lh * 1.5);
+            c.fillStyle = '#1a1a1a';
+            c.font = '700 ' + tSize + 'px ' + FONT_DISPLAY;
+            c.fillText('Day.', bx, by + lh * 2.5);
+            return lh * 3;
+          },
+        },
+        // Ảnh hoa landscape
+        {
+          gap: 40,
+          render: (c, bx, by, bw) => {
+            const ph = 620;
+            c.save();
+            c.shadowColor = 'rgba(0, 0, 0, 0.1)';
+            c.shadowBlur = 26;
+            c.shadowOffsetY = 8;
+            roundRect(c, bx, by, bw, ph, 20);
+            c.fillStyle = '#fff';
+            c.fill();
+            c.restore();
+            c.save();
+            roundRect(c, bx + 8, by + 8, bw - 16, ph - 16, 14);
+            c.clip();
+            drawCoverImage(c, bouquetImg, bx + 8, by + 8, bw - 16, ph - 16);
+            c.restore();
+            return ph;
+          },
+        },
+        // Caption
+        {
+          gap: 24,
+          render: (c, bx, by, bw) => {
+            const h = 32;
+            c.font = 'italic 400 28px ' + FONT_SCRIPT;
+            c.fillStyle = '#8b8b8b';
+            c.textAlign = 'left';
+            c.textBaseline = 'middle';
+            c.fillText('~ Một bó hoa kết từ rất nhiều yêu thương ~', bx, by + h / 2);
+            return h;
+          },
+        },
+        // Lời chúc
+        {
+          gap: 46,
+          render: (c, bx, by, bw) => {
+            let cur = by;
+            c.font = '600 24px ' + FONT_BODY;
+            c.fillStyle = '#e85a8c';
+            c.textAlign = 'left';
+            c.textBaseline = 'middle';
+            c.fillText('— GỬI ĐẾN —', bx, cur + 16);
+            cur += 48;
+            // Tên — tự co nếu dài
+            const nameH = 92;
+            let nf = 80;
+            c.font = '700 ' + nf + 'px ' + FONT_DISPLAY;
+            while (c.measureText(name).width > bw && nf > 36) {
+              nf -= 4;
+              c.font = '700 ' + nf + 'px ' + FONT_DISPLAY;
+            }
+            c.fillStyle = '#1a1a1a';
+            c.fillText(name, bx, cur + nameH / 2);
+            cur += nameH + 20;
+            const wf = 42;
+            const lh = wf * 1.5;
+            c.font = 'italic 500 ' + wf + 'px ' + FONT_SCRIPT;
+            c.fillStyle = '#4a4a4a';
+            const lines = wrapLines(c, 'Chúc ' + name + ' một ngày 20/10 thật ý nghĩa, tràn đầy hoa và yêu thương', bw);
+            for (const ln of lines) {
+              c.fillText(ln, bx, cur + lh / 2);
+              cur += lh;
+            }
+            return cur - by;
+          },
+        },
+        // Footer
+        {
+          gap: 44,
+          render: (c, bx, by, bw) => {
+            let cur = by;
+            c.save();
+            c.strokeStyle = '#e85a8c';
+            c.lineWidth = 3;
+            c.beginPath();
+            c.moveTo(bx, cur);
+            c.lineTo(bx + 90, cur);
+            c.stroke();
+            c.restore();
+            cur += 20;
+            const h = 28;
+            c.font = '600 22px ' + FONT_BODY;
+            c.fillStyle = '#e85a8c';
+            c.textAlign = 'left';
+            c.textBaseline = 'middle';
+            c.fillText('VỚI TẤT CẢ YÊU THƯƠNG & TRÂN TRỌNG', bx, cur + h / 2);
+            return 20 + h;
+          },
+        },
+      ];
+
+      flowBoxes(ctx, boxes, x, top, w);
+
+      return canvas;
+    }
+
+    /* ====== Helpers đặc thù cho style ====== */
+    function drawSoftBlob(ctx, cx, cy, size, color, alpha) {
+      ctx.save();
+      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, size);
+      g.addColorStop(0, color);
+      g.addColorStop(0.5, color.replace(')', `, ${alpha * 0.4})`).replace('rgb', 'rgba'));
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(cx, cy, size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawRibbon(ctx, x, y, w, h) {
+      // Ribbon có đuôi (chevron)
+      const tail = 30;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + tail, y - 20);
+      ctx.lineTo(x + tail + 10, y);
+      ctx.lineTo(x + w - tail - 10, y);
+      ctx.lineTo(x + w - tail, y - 20);
+      ctx.lineTo(x + w, y);
+      ctx.lineTo(x + w, y + h);
+      ctx.lineTo(x + w - tail, y + h + 20);
+      ctx.lineTo(x + w - tail - 10, y + h);
+      ctx.lineTo(x + tail + 10, y + h);
+      ctx.lineTo(x + tail, y + h + 20);
+      ctx.lineTo(x, y + h);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drawVintageCorner(ctx, x, y, opts = {}) {
+      ctx.save();
+      ctx.translate(x, y);
+      if (opts.flipX) ctx.scale(-1, 1);
+      if (opts.flipY) ctx.scale(1, -1);
+      ctx.strokeStyle = 'rgba(140, 70, 50, 0.75)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, 40);
+      ctx.quadraticCurveTo(0, 0, 40, 0);
+      ctx.stroke();
+      // Hoa nhỏ
+      ctx.fillStyle = '#8b3a52';
+      ctx.font = '34px serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText('❀', 8, 8);
+      ctx.restore();
     }
 
     // ---- Helpers vẽ ---------------------------------------------------
@@ -531,20 +1045,61 @@
     }
 
     // ---- Actions -------------------------------------------------------
+    // Xuất canvas → PNG blob. Bọc riêng để bắt lỗi canvas bị "tainted"
+    // (SecurityError) và trả về thông báo dễ hiểu cho người dùng.
+    async function canvasToPngBlob(canvas) {
+      try {
+        const blob = await new Promise((resolve, reject) => {
+          try {
+            canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob rỗng'))), 'image/png');
+          } catch (e) {
+            reject(e);
+          }
+        });
+        return blob;
+      } catch (err) {
+        if (err && err.name === 'SecurityError') {
+          const friendly = new Error(
+            'CANVAS_TAINTED'
+          );
+          friendly.cause = err;
+          throw friendly;
+        }
+        throw err;
+      }
+    }
+
+    function handleCanvasTaint() {
+      // Nguyên nhân: mở file bằng file:// hoặc ảnh nằm khác domain mà server
+      // không trả CORS header → canvas bị taint, không xuất được PNG.
+      console.warn(
+        '[Postcard] Canvas bị taint — không thể xuất PNG. ' +
+          'Hãy mở web qua http://localhost (vd: python -m http.server 8765) thay vì file://'
+      );
+      toast('Ảnh không xuất được trên file:// — hãy chạy qua localhost nhé', '⚠');
+    }
+
     async function downloadPostcard() {
       try {
         const canvas = await renderPostcardToCanvas();
-        const dataUrl = canvas.toDataURL('image/png');
+        const blob = await canvasToPngBlob(canvas);
         const name = document.getElementById('recipient-name')?.value || '';
+        const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.download = safeFilename(name);
-        link.href = dataUrl;
+        link.href = url;
         document.body.appendChild(link);
         link.click();
         link.remove();
+        // Nhả bộ nhớ blob sau khi trình duyệt bắt đầu tải
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
         toast('Đã lưu ảnh thành công!', '📥');
         markSuccess();
       } catch (err) {
+        if (err && err.message === 'CANVAS_TAINTED') {
+          handleCanvasTaint();
+          return;
+        }
         console.error('Download error:', err);
         toast('Không thể lưu ảnh, thử lại nhé', '⚠');
       }
@@ -557,7 +1112,13 @@
         const text = shareText(name);
 
         if (canvas.toBlob && navigator.canShare && navigator.share) {
-          const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+          let blob = null;
+          try {
+            blob = await canvasToPngBlob(canvas);
+          } catch (e) {
+            if (e && e.message === 'CANVAS_TAINTED') throw e;
+            blob = null;
+          }
           if (blob) {
             const file = new File([blob], safeFilename(name), { type: 'image/png' });
             if (navigator.canShare({ files: [file] })) {
@@ -572,6 +1133,10 @@
       } catch (err) {
         if (err && err.name === 'AbortError') {
           // User hủy chia sẻ, không báo lỗi
+          return;
+        }
+        if (err && err.message === 'CANVAS_TAINTED') {
+          handleCanvasTaint();
           return;
         }
         console.warn('Web Share file failed:', err);
@@ -632,6 +1197,31 @@
           e.preventDefault();
           action();
         });
+      });
+    });
+
+    // ---- Style picker --------------------------------------------------
+    // Cho phép user chọn phong cách postcard PNG (chỉ ảnh hưởng tới ảnh xuất,
+    // không ảnh hưởng postcard HTML hiển thị trên web).
+    const postcardEl = document.getElementById('postcard');
+    document.querySelectorAll('.style-chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const style = chip.dataset.style || 'magazine';
+        currentStyle = style;
+        document.querySelectorAll('.style-chip').forEach((c) => {
+          const isActive = c === chip;
+          c.classList.toggle('is-active', isActive);
+          c.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
+        // Đổi class trên #postcard để preview thay đổi ngay trên web
+        if (postcardEl) {
+          postcardEl.classList.remove('postcard--magazine', 'postcard--romantic', 'postcard--minimal');
+          postcardEl.classList.add('postcard--' + style);
+        }
+        const name = (style === 'magazine' && 'Tạp chí') ||
+                     (style === 'romantic' && 'Vintage') ||
+                     (style === 'minimal' && 'Minimal');
+        toast(`Phong cách: ${name}`, '🎨');
       });
     });
   }
