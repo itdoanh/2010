@@ -206,8 +206,8 @@
       const n = (name || '').trim();
       const suffix = ' · rin.io.vn';
       return n
-        ? `\u{1F490} ${n} \u{1F691}, dành cho bạn đó! — Chúc mừng 20.10.2026${suffix} \u{1F33F}`
-        : `\u{1F490} Gửi đến bạn! — Chúc mừng 20.10.2026${suffix} \u{1F33F}`;
+        ? `\u{1F490} ${n} \u{1F691}, dành cho bạn đó! — Chúc mừng 20.10.2026 \u{1F338}\n— Rinva · ${suffix}`
+        : `\u{1F490} Gửi đến bạn! — Chúc mừng 20.10.2026 \u{1F338}\n— Rinva · ${suffix}`;
     }
 
     function toast(msg, icon = '✓') {
@@ -578,6 +578,8 @@
       drawCornerDeco(ctx, '✿', innerX + 34, innerY + innerH - 34, { baseline: 'bottom' });
       drawCornerDeco(ctx, '✿', innerX + innerW - 34, innerY + innerH - 34, { align: 'right', baseline: 'bottom' });
 
+      drawRinvaCredit(ctx, W, H, K, 'magazine');
+
       return canvas;
     }
 
@@ -776,6 +778,8 @@
 
       flowBoxes(ctx, boxes, x, theme.outerY + 92, w);
 
+      drawRinvaCredit(ctx, W, H, 1, 'romantic');
+
       return canvas;
     }
 
@@ -928,6 +932,8 @@
 
       flowBoxes(ctx, boxes, x, top, w);
 
+      drawRinvaCredit(ctx, W, H, 1, 'minimal');
+
       return canvas;
     }
 
@@ -1012,6 +1018,57 @@
       const sx = (iw - sw) / 2;
       const sy = (ih - sh) / 2;
       ctx.drawImage(src, sx, sy, sw, sh, dx, dy, dw, dh);
+    }
+
+    // Vẽ dòng credit "Rinva · rin.io.vn" ở dưới cùng PNG postcard
+    function drawRinvaCredit(ctx, W, H, K = 1, style = 'magazine') {
+      const S = (v) => Math.round(v * K);
+      const cy = H - S(34);
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      // Chấm tròn nhỏ 2 bên
+      const dotR = Math.max(2, 3 * K);
+      const dotY = cy;
+      const dotGapX = S(120);
+      // Tên Rinva (in hoa, đậm) — màu theo style
+      const rinvaColor = style === 'minimal' ? '#9a9a9a'
+                       : style === 'romantic' ? 'rgba(140, 70, 50, 0.7)'
+                       : 'rgba(140, 60, 100, 0.72)';
+      // Vẽ "Rinva"
+      ctx.fillStyle = rinvaColor;
+      ctx.font = '600 ' + S(22) + 'px ' + FONT_BODY;
+      const rinvaW = ctx.measureText('Rinva').width;
+      // URL nhỏ hơn, cùng dòng
+      ctx.font = '500 ' + S(20) + 'px ' + FONT_BODY;
+      const urlW = ctx.measureText('rin.io.vn').width;
+      const sepW = S(16);
+      const totalW = rinvaW + sepW + urlW + dotGapX * 2 + dotR * 2;
+      const startX = W / 2 - totalW / 2;
+      // Chấm trái
+      ctx.beginPath();
+      ctx.arc(startX + dotR, dotY, dotR, 0, Math.PI * 2);
+      ctx.fill();
+      // Rinva
+      ctx.font = '600 ' + S(22) + 'px ' + FONT_BODY;
+      ctx.textAlign = 'left';
+      const rinvaX = startX + dotR * 2 + dotGapX;
+      ctx.fillText('Rinva', rinvaX, cy);
+      // Dấu phân cách chấm giữa
+      const midDotX = rinvaX + rinvaW + sepW / 2;
+      ctx.beginPath();
+      ctx.arc(midDotX, cy, Math.max(1.5, 2 * K), 0, Math.PI * 2);
+      ctx.fill();
+      // URL
+      const urlX = rinvaX + rinvaW + sepW;
+      ctx.font = '500 ' + S(20) + 'px ' + FONT_BODY;
+      ctx.fillText('rin.io.vn', urlX, cy);
+      // Chấm phải
+      const rightX = urlX + urlW + dotGapX;
+      ctx.beginPath();
+      ctx.arc(rightX + dotR, dotY, dotR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
     }
 
     function drawCornerDeco(ctx, ch, x, y, opts = {}) {
@@ -1123,7 +1180,7 @@
           if (blob) {
             const file = new File([blob], safeFilename(name), { type: 'image/png' });
             if (navigator.canShare({ files: [file] })) {
-              await navigator.share({ files: [file], title: 'Chúc Mừng 20/10 — By Rinva', text: text, url: 'https://rin.io.vn' });
+              await navigator.share({ files: [file], title: 'Chúc Mừng 20/10 — Rinva', text: text, url: 'https://rin.io.vn' });
               toast('Đã mở bảng chia sẻ!', '📤');
               markSuccess();
               return;
