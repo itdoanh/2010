@@ -220,7 +220,7 @@
               id="recipient-name"
               type="text"
               class="postcard-recipient"
-              value="Người phụ nữ tuyệt vời"
+              placeholder="Bấm vào đây để điền tên của bạn"
               maxlength="60"
               aria-label="Tên người nhận"
               spellcheck="false"
@@ -228,7 +228,7 @@
             <p class="postcard-wish">
               <span class="wish-icon-left">🌷</span>
               <span>
-                Chúc <span id="recipient-display">Người phụ nữ tuyệt vời</span>
+                Chúc <span id="recipient-display">Một người phụ nữ tuyệt vời</span>
                 một ngày 20/10 thật ý nghĩa,
                 <br/>
                 tràn đầy hoa và yêu thương
@@ -244,6 +244,53 @@
             <span class="footer-line"></span>
           </footer>
         </div>
+      </div>
+
+      <!-- ====== Bộ chọn bó hoa (NGOÀI postcard — không xuất vào PNG) ====== -->
+      <div class="bouquet-gallery" role="group" aria-label="Chọn bó hoa">
+        <h3 class="gallery-title">
+          <span class="gallery-title-icon">💐</span>
+          Chọn bó hoa bạn thích
+          <span class="gallery-title-icon">💐</span>
+        </h3>
+        <div class="gallery-grid" id="bouquet-gallery-grid">
+          <button type="button" class="bouquet-thumb is-active"
+                  data-src="data/mau-hoa-1.png"
+                  data-name="Bó hoa pastel hồng"
+                  aria-label="Bó hoa pastel hồng">
+            <img src="data/mau-hoa-1.png" alt="Bó hoa pastel hồng" loading="lazy" />
+            <span class="thumb-label">Pastel Hồng</span>
+          </button>
+          <button type="button" class="bouquet-thumb"
+                  data-src="data/avd.png"
+                  data-name="Bó hoa hồng-vàng đậm"
+                  aria-label="Bó hoa hồng-vàng đậm">
+            <img src="data/avd.png" alt="Bó hoa hồng-vàng đậm" loading="lazy" />
+            <span class="thumb-label">Hồng Vàng Đậm</span>
+          </button>
+          <button type="button" class="bouquet-thumb"
+                  data-src="data/avd-6.png"
+                  data-name="Bó hoa hồng-xanh có ruy băng"
+                  aria-label="Bó hoa hồng-xanh có ruy băng">
+            <img src="data/avd-6.png" alt="Bó hoa hồng-xanh có ruy băng" loading="lazy" />
+            <span class="thumb-label">Hồng-Xanh</span>
+          </button>
+          <button type="button" class="bouquet-thumb"
+                  data-src="data/hoa_huong_duong.png"
+                  data-name="Bó hoa hướng dương"
+                  aria-label="Bó hoa hướng dương">
+            <img src="data/hoa_huong_duong.png" alt="Bó hoa hướng dương" loading="lazy" />
+            <span class="thumb-label">Hướng Dương</span>
+          </button>
+          <button type="button" class="bouquet-thumb"
+                  data-src="data/hoa_tualip.png"
+                  data-name="Bó hoa tulip đa sắc"
+                  aria-label="Bó hoa tulip đa sắc">
+            <img src="data/hoa_tualip.png" alt="Bó hoa tulip đa sắc" loading="lazy" />
+            <span class="thumb-label">Tulip Đa Sắc</span>
+          </button>
+        </div>
+        <p class="gallery-hint">Bó hoa bạn chọn sẽ hiển thị trên tấm thiệp khi lưu/chia sẻ ✨</p>
       </div>
 
       <!-- Nút Chia sẻ / Lưu ảnh lớn phía dưới postcard (mobile-friendly) -->

@@ -960,6 +960,17 @@ input { font-family: inherit; }
   outline: none;
   transition: all 0.3s ease;
   letter-spacing: 0.02em;
+  cursor: text;
+}
+.postcard-recipient::placeholder {
+  color: rgba(232, 90, 140, 0.45);
+  font-weight: 500;
+  font-style: italic;
+  font-size: 1.05rem;
+}
+.postcard-recipient:not(:placeholder-shown) {
+  border-color: var(--col-pink-deep);
+}
 }
 
 .postcard-recipient:focus {
@@ -1184,8 +1195,140 @@ input { font-family: inherit; }
 }
 
 /* ============================================================
-   UTILITIES
+   BỘ CHỌN BÓ HOA (gallery ngoài postcard — không xuất PNG)
    ============================================================ */
+.bouquet-gallery {
+  margin: 1.25rem auto 0.5rem;
+  max-width: 720px;
+  width: 100%;
+  padding: 1rem 1.25rem 1.25rem;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1.5px dashed rgba(232, 90, 140, 0.45);
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(232, 90, 140, 0.1);
+}
+
+.gallery-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--col-pink-deep);
+  text-align: center;
+  margin: 0 0 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  letter-spacing: 0.04em;
+}
+
+.gallery-title-icon {
+  font-size: 1.2rem;
+  filter: drop-shadow(0 1px 1px rgba(232, 90, 140, 0.3));
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
+}
+
+.bouquet-thumb {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  background: linear-gradient(180deg, #fff8f5, #ffeef4);
+  border: 2px solid transparent;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: transform 0.25s ease, border-color 0.25s ease,
+    box-shadow 0.25s ease, background 0.25s ease;
+  overflow: hidden;
+}
+
+.bouquet-thumb img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 10px;
+  display: block;
+  background: #fff5f7;
+  transition: transform 0.4s ease;
+}
+
+.bouquet-thumb .thumb-label {
+  margin-top: 6px;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--col-text);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.bouquet-thumb:hover {
+  transform: translateY(-3px);
+  border-color: var(--col-pink-soft);
+  box-shadow: 0 6px 16px rgba(232, 90, 140, 0.18);
+}
+
+.bouquet-thumb:hover img {
+  transform: scale(1.06);
+}
+
+.bouquet-thumb:focus-visible {
+  outline: none;
+  border-color: var(--col-pink-deep);
+  box-shadow: 0 0 0 3px rgba(232, 90, 140, 0.3);
+}
+
+.bouquet-thumb.is-active {
+  background: linear-gradient(180deg, #ffeef4, #ffe0ea);
+  border-color: var(--col-pink-deep);
+  box-shadow: 0 6px 20px rgba(232, 90, 140, 0.35);
+}
+
+.bouquet-thumb.is-active::before {
+  content: '✓';
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  background: var(--col-pink-deep);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  z-index: 2;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.bouquet-thumb.is-active .thumb-label {
+  color: var(--col-pink-deep);
+}
+
+.gallery-hint {
+  margin: 0.85rem 0 0;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--col-text-light);
+  font-style: italic;
+}
+
+@media (max-width: 600px) {
+  .bouquet-gallery { padding: 0.75rem 0.85rem 1rem; }
+  .gallery-title { font-size: 1rem; }
+  .gallery-grid { grid-template-columns: repeat(auto-fit, minmax(95px, 1fr)); gap: 0.5rem; }
+  .bouquet-thumb .thumb-label { font-size: 0.7rem; }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

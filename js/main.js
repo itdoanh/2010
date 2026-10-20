@@ -206,7 +206,7 @@
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('Trình duyệt không hỗ trợ Canvas');
 
-      const name = (document.getElementById('recipient-name')?.value || 'Người phụ nữ tuyệt vời').trim() || 'Người phụ nữ tuyệt vời';
+      const name = getRecipientName();
 
       // Đợi fonts sẵn sàng
       await Promise.all([
@@ -659,20 +659,75 @@
   }
 
   // ============================================================
-  // 5. RECIPIENT NAME INPUT SYNC
+  // 5. RECIPIENT NAME INPUT SYNC + BOQUET PICKER
   // ============================================================
+
+  // Helper lấy tên người nhận — nếu user chưa nhập thì fallback nhẹ nhàng
+  function getRecipientName(input) {
+    if (!input) input = document.getElementById('recipient-name');
+    const v = (input?.value || '').trim();
+    return v || 'Một người phụ nữ tuyệt vời';
+  }
+
   function bindRecipientInput() {
     const input = $('#recipient-name');
     const display = $('#recipient-display');
     if (!input || !display) return;
 
     function update() {
-      const name = input.value.trim() || 'Người phụ nữ tuyệt vời';
+      const name = (input.value || '').trim() || 'Một người phụ nữ tuyệt vời';
       display.textContent = name;
     }
 
+    // Cập nhật ban đầu
+    update();
+
     input.addEventListener('input', update);
     input.addEventListener('change', update);
+  }
+
+  function bindBouquetPicker() {
+    const grid = document.getElementById('bouquet-gallery-grid');
+    const img = document.getElementById('bouquet-img');
+    if (!grid || !img) return;
+
+    const thumbs = Array.from(grid.querySelectorAll('.bouquet-thumb'));
+
+    function setActive(thumb) {
+      thumbs.forEach((t) => {
+        const isActive = t === thumb;
+        t.classList.toggle('is-active', isActive);
+        t.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      });
+    }
+
+    thumbs.forEach((thumb) => {
+      thumb.setAttribute('aria-pressed', thumb.classList.contains('is-active') ? 'true' : 'false');
+
+      thumb.addEventListener('click', () => {
+        const newSrc = thumb.getAttribute('data-src');
+        if (!newSrc) return;
+
+        // Đổi src ảnh bouquet trên postcard
+        img.src = newSrc;
+
+        // Đánh dấu active
+        setActive(thumb);
+
+        // Toast nhỏ cho biết đã chọn
+        const name = thumb.getAttribute('data-name') || 'Bó hoa';
+        if (typeof toast === 'function') {
+          toast(`Đã chọn ${name}`, '💐');
+        }
+      });
+
+      thumb.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          thumb.click();
+        }
+      });
+    });
   }
 
   // ============================================================
@@ -683,6 +738,7 @@
     startPetalRain();
     startSparkleLayer();
     bindRecipientInput();
+    bindBouquetPicker();
     initPostcardActions();
 
     setTimeout(() => goToStage('stage-2'), 3200);
