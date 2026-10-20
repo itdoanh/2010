@@ -133,134 +133,205 @@
   }
 
   // ============================================================
-  // 3.5 BOUQUET GALLERY (PNG thật, nút random + thumbnails)
+  // 3.5 POSTCARD — xử lý Share / Download tấm postcard ra PNG
   // ============================================================
-  function initBouquetGallery() {
-    const stage = document.querySelector('.bouquet-stage');
-    const mainImg = document.getElementById('bouquet-img');
-    const preloader = document.getElementById('bouquet-img-hidden');
-    const loader = document.getElementById('bouquet-loader');
-    const btnShuffle = document.getElementById('btn-shuffle-bouquet');
-    const counterCurrent = document.getElementById('bouquet-current');
-    const counterTotal = document.getElementById('bouquet-total');
-    const thumbs = Array.from(document.querySelectorAll('.bouquet-thumb'));
+  function initPostcardActions() {
+    const postcard = document.getElementById('postcard');
+    const img = document.getElementById('bouquet-img');
+    if (!postcard || !img) return;
 
-    if (!stage || !mainImg || !btnShuffle || thumbs.length === 0) return;
-
-    const bouquets = thumbs.map((t) => ({
-      src: t.dataset.src,
-      index: Number(t.dataset.index) || 0,
-      el: t,
-    }));
-
-    if (counterTotal) counterTotal.textContent = String(bouquets.length);
-
-    let currentIndex = 0;
-    let isAnimating = false;
-
-    function preload(src) {
+    // Bảo đảm ảnh hoa tải xong trước khi cho phép export
+    function ensureImageReady(src) {
       return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => resolve(src);
-        img.onerror = () => resolve(null);
-        img.src = src;
+        const test = new Image();
+        test.onload = () => resolve(true);
+        test.onerror = () => resolve(false);
+        test.src = src;
       });
     }
 
-    function showLoader(show) {
-      if (!loader) return;
-      loader.classList.toggle('hidden', !show);
+    // Sinh tên file an toàn từ tên người nhận
+    function safeFilename(name) {
+      const cleaned = (name || 'thu-20-10')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9_\- ]+/g, '')
+        .trim()
+        .replace(/\s+/g, '-')
+        .slice(0, 40) || 'thu-20-10';
+      return `postcard-20-10-${cleaned}.png`;
     }
 
-    function updateCounter() {
-      if (counterCurrent) counterCurrent.textContent = String(bouquets[currentIndex].index);
+    // Sinh tên chia sẻ
+    function shareText(name) {
+      const n = (name || '').trim();
+      return n
+        ? `💐 ${n} ơi, dành cho bạn đó! — Chúc mừng 20.10.2026 🌹`
+        : `💐 Gửi đến bạn! — Chúc mừng 20.10.2026 🌹`;
     }
 
-    function updateActiveThumb() {
-      thumbs.forEach((t, i) => {
-        const active = i === currentIndex;
-        t.classList.toggle('active', active);
-        t.setAttribute('aria-selected', active ? 'true' : 'false');
+    function toast(msg, icon = '✓') {
+      let el = document.querySelector('.postcard-toast');
+      if (!el) {
+        el = document.createElement('div');
+        el.className = 'postcard-toast';
+        el.setAttribute('role', 'status');
+        document.body.appendChild(el);
+      }
+      el.innerHTML = `<span class="toast-icon">${icon}</span><span>${msg}</span>`;
+      el.classList.add('show');
+      clearTimeout(el._t);
+      el._t = setTimeout(() => el.classList.remove('show'), 2400);
+    }
+
+    async function capturePostcard() {
+      // Đợi ảnh hoa thật sự load xong (tránh html2canvas vẽ ra ảnh trống)
+      const src = img.src || img.dataset.src;
+      if (!src) throw new Error('Không tìm thấy ảnh hoa');
+      await ensureImageReady(src);
+
+      // Tạm tắt animation để ảnh chụp không bị nhòe
+      postcard.classList.add('export-mode');
+
+      const html2canvas = window.html2canvas;
+      if (typeof html2canvas !== 'function') {
+        postcard.classList.remove('export-mode');
+        throw new Error('html2canvas chưa sẵn sàng');
+      }
+
+      try {
+        const canvas = await html2canvas(postcard, {
+          backgroundColor: '#fff8f5',
+          scale: window.devicePixelRatio > 1 ? 2 : 2,
+          useCORS: true,
+          allowTaint: false,
+          logging: false,
+          windowWidth: postcard.scrollWidth,
+          windowHeight: postcard.scrollHeight,
+        });
+        return canvas;
+      } finally {
+        postcard.classList.remove('export-mode');
+      }
+    }
+
+    async function downloadPostcard() {
+      const name = document.getElementById('recipient-name')?.value || '';
+      try {
+        const canvas = await capturePostcard();
+        const dataUrl = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = safeFilename(name);
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        toast('Đã lưu ảnh thành công!', '📥');
+        markSuccess();
+      } catch (err) {
+        console.error('Download error:', err);
+        toast('Không thể lưu ảnh, thử lại nhé', '⚠');
+      }
+    }
+
+    async function sharePostcard() {
+      const name = document.getElementById('recipient-name')?.value || '';
+      const text = shareText(name);
+      const url = location.href;
+      let shared = false;
+
+      // Ưu tiên Web Share API (mobile, có file)
+      if (navigator.canShare && navigator.share) {
+        try {
+          const canvas = await capturePostcard();
+          canvas.toBlob(async (blob) => {
+            if (!blob) {
+              shareFallback(text, url);
+              return;
+            }
+            const file = new File([blob], safeFilename(name), { type: 'image/png' });
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({ files: [file], title: '20.10.2026', text });
+              shared = true;
+              toast('Đã mở bảng chia sẻ!', '📤');
+              markSuccess();
+            } else {
+              shareFallback(text, url);
+            }
+          }, 'image/png');
+          return;
+        } catch (err) {
+          console.warn('Web Share file failed:', err);
+        }
+      }
+
+      shareFallback(text, url);
+    }
+
+    function shareFallback(text, url) {
+      // Copy link + text vào clipboard
+      const full = `${text}\n${url}`;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(full).then(
+          () => {
+            toast('Đã sao chép lời chúc — dán đi chia sẻ thôi!', '📋');
+            markSuccess();
+          },
+          () => toast('Không thể sao chép, hãy chụp màn hình nhé', '⚠')
+        );
+      } else {
+        // Fallback cũ
+        const ta = document.createElement('textarea');
+        ta.value = full;
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand('copy');
+          toast('Đã sao chép lời chúc — dán đi chia sẻ thôi!', '📋');
+          markSuccess();
+        } catch {
+          toast('Hãy chụp màn hình chia sẻ nhé 💕', '💕');
+        }
+        ta.remove();
+      }
+    }
+
+    function flashButtonSuccess(btn) {
+      if (!btn) return;
+      btn.classList.add('is-success');
+      setTimeout(() => btn.classList.remove('is-success'), 1600);
+    }
+
+    function markSuccess() {
+      flashButtonSuccess(document.getElementById('btn-download'));
+      flashButtonSuccess(document.getElementById('btn-download-2'));
+      flashButtonSuccess(document.getElementById('btn-share'));
+      flashButtonSuccess(document.getElementById('btn-share-2'));
+    }
+
+    // Gắn sự kiện cho cả cặp nút (desktop + mobile)
+    [
+      ['btn-download', 'btn-download-2'],
+      ['btn-share', 'btn-share-2'],
+    ].forEach((pair) => {
+      const [top, bottom] = pair;
+      const action = pair[0].startsWith('btn-download') ? downloadPostcard : sharePostcard;
+      [top, bottom].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('click', (e) => {
+          e.preventDefault();
+          action();
+        });
       });
-    }
-
-    async function setBouquet(nextIndex) {
-      if (isAnimating) return;
-      if (nextIndex === currentIndex) {
-        // Vẫn chạy animation cho dù trùng để có cảm giác "đổi"
-        nextIndex = (nextIndex + 1) % bouquets.length;
-      }
-      const target = bouquets[nextIndex];
-      isAnimating = true;
-      showLoader(true);
-
-      const loaded = await preload(target.src);
-      if (!loaded) {
-        showLoader(false);
-        isAnimating = false;
-        return;
-      }
-
-      // Fade out ảnh hiện tại
-      mainImg.classList.add('is-loading');
-
-      setTimeout(() => {
-        mainImg.src = target.src;
-        mainImg.classList.remove('is-loading', 'swap-in');
-        // Force reflow để animation chạy lại
-        void mainImg.offsetWidth;
-        mainImg.classList.add('swap-in');
-
-        currentIndex = nextIndex;
-        updateActiveThumb();
-        updateCounter();
-        showLoader(false);
-        setTimeout(() => {
-          mainImg.classList.remove('swap-in');
-          isAnimating = false;
-        }, 850);
-      }, 320);
-    }
-
-    function pickRandomDifferent() {
-      if (bouquets.length <= 1) return 0;
-      let i = currentIndex;
-      while (i === currentIndex) {
-        i = Math.floor(Math.random() * bouquets.length);
-      }
-      return i;
-    }
-
-    btnShuffle.addEventListener('click', () => {
-      btnShuffle.classList.remove('is-spinning');
-      void btnShuffle.offsetWidth;
-      btnShuffle.classList.add('is-spinning');
-      setTimeout(() => btnShuffle.classList.remove('is-spinning'), 650);
-      setBouquet(pickRandomDifferent());
     });
 
-    thumbs.forEach((thumb, i) => {
-      thumb.addEventListener('click', () => setBouquet(i));
-    });
-
-    // Preload tất cả ảnh nền
-    bouquets.forEach((b) => {
-      const img = new Image();
-      img.src = b.src;
-    });
-
-    // Ẩn loader ngay khi ảnh đầu tiên load xong
-    if (mainImg.complete && mainImg.naturalWidth > 0) {
-      showLoader(false);
+    // Đợi ảnh sẵn sàng rồi thông báo nhẹ
+    if (img.complete && img.naturalWidth > 0) {
+      // ok
     } else {
-      mainImg.addEventListener(
-        'load',
-        () => {
-          showLoader(false);
-          updateCounter();
-        },
-        { once: true }
-      );
+      img.addEventListener('load', () => {
+        // ok
+      }, { once: true });
     }
   }
 
@@ -311,7 +382,7 @@
     startPetalRain();
     startSparkleLayer();
     bindRecipientInput();
-    initBouquetGallery();
+    initPostcardActions();
 
     setTimeout(() => goToStage('stage-2'), 3200);
 

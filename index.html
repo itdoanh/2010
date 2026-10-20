@@ -154,91 +154,122 @@
   </section>
 
   <!-- ========================================================================
-       TRANG 4: TRANG KẾT - 1 BÓ HOA ĐẸP DUY NHẤT
+       TRANG 4: CHECK-IN POSTCARD - SHARE & DOWNLOAD
        ======================================================================== -->
   <section id="stage-4" class="stage-screen">
+
+    <!-- Nút Chia sẻ / Lưu ảnh cố định góc trên phải (nằm ngoài khung postcard) -->
+    <div class="action-bar-top">
+      <button id="btn-download" class="action-btn" type="button" title="Lưu ảnh này về máy">
+        <span class="action-icon">⬇</span>
+        <span class="action-text">Lưu ảnh</span>
+      </button>
+      <button id="btn-share" class="action-btn" type="button" title="Chia sẻ với mọi người">
+        <span class="action-icon">↗</span>
+        <span class="action-text">Chia sẻ</span>
+      </button>
+    </div>
+
     <div class="final-stage">
 
       <div class="final-bg-glow"></div>
 
-      <h2 class="final-title">Bó Hoa Tặng Bạn</h2>
-      <p class="final-subtitle">Một bó hoa được kết từ rất nhiều yêu thương 💕</p>
+      <!-- Tấm postcard để chụp ảnh -->
+      <div id="postcard" class="postcard">
 
-      <!-- Khu vực bó hoa -->
-      <div id="bouquet-display" class="bouquet-display">
-        <!-- BÓ HOA PNG thật - gallery với nút đổi -->
-        <div class="bouquet-stage">
-          <button id="btn-shuffle-bouquet" class="btn-shuffle" type="button" title="Đổi bó hoa khác" aria-label="Đổi bó hoa khác">
-            <span class="shuffle-icon">🔀</span>
-            <span class="shuffle-label">Đổi hoa</span>
-          </button>
-          <div id="bouquet-counter" class="bouquet-counter" aria-live="polite">
-            <span id="bouquet-current">1</span>
-            <span class="counter-sep">/</span>
-            <span id="bouquet-total">5</span>
+        <!-- Viền ngoài -->
+        <div class="postcard-border">
+          <span class="corner-deco tl">✿</span>
+          <span class="corner-deco tr">✿</span>
+          <span class="corner-deco bl">✿</span>
+          <span class="corner-deco br">✿</span>
+
+          <!-- Header postcard -->
+          <header class="postcard-header">
+            <div class="postcard-stamp">🌹</div>
+            <div class="postcard-meta">
+              <span class="meta-line-1">Happy Vietnamese Women's Day</span>
+              <span class="meta-line-2">20 . 10 . 2026</span>
+            </div>
+            <div class="postcard-tag">
+              <span class="tag-dot"></span>
+              <span class="tag-text">SPECIAL DAY</span>
+            </div>
+          </header>
+
+          <!-- Ảnh bó hoa -->
+          <div class="postcard-photo">
+            <div class="photo-glow"></div>
+            <img id="bouquet-img"
+                 src="data/mau-hoa-1.png"
+                 alt="Bó hoa tặng bạn"
+                 class="bouquet-photo"
+                 loading="eager"
+                 decoding="async"
+                 crossorigin="anonymous"/>
+            <div class="photo-caption">
+              <span class="caption-icon">✦</span>
+              <span>Một bó hoa được kết từ rất nhiều yêu thương</span>
+              <span class="caption-icon">✦</span>
+            </div>
           </div>
-          <img id="bouquet-img"
-               src="data/mau-hoa-1.png"
-               alt="Bó hoa tặng bạn"
-               class="bouquet-photo"
-               loading="eager"
-               decoding="async"/>
-          <div id="bouquet-loader" class="bouquet-loader" aria-hidden="true">
-            <div class="bouquet-loader-spinner"></div>
-            <span>Đang tải hoa...</span>
+
+          <!-- Lời chúc + tên người nhận -->
+          <div class="postcard-message">
+            <p class="postcard-to-label">— Gửi đến —</p>
+            <input
+              id="recipient-name"
+              type="text"
+              class="postcard-recipient"
+              value="Người phụ nữ tuyệt vời"
+              maxlength="60"
+              aria-label="Tên người nhận"
+              spellcheck="false"
+            />
+            <p class="postcard-wish">
+              <span class="wish-icon-left">🌷</span>
+              <span>
+                Chúc <span id="recipient-display">Người phụ nữ tuyệt vời</span>
+                một ngày 20/10 thật ý nghĩa,
+                <br/>
+                tràn đầy hoa và yêu thương
+              </span>
+              <span class="wish-icon-right">🌷</span>
+            </p>
           </div>
-          <img id="bouquet-img-hidden"
-               alt=""
-               aria-hidden="true"
-               class="bouquet-photo-hidden"/>
-        </div>
-        <!-- Thumbnails -->
-        <div id="bouquet-thumbs" class="bouquet-thumbs" role="tablist">
-          <button class="bouquet-thumb active" data-src="data/mau-hoa-1.png" data-index="1" role="tab" aria-selected="true" aria-label="Bó hoa 1">
-            <img src="data/mau-hoa-1.png" alt="Bó hoa 1" loading="lazy"/>
-          </button>
-          <button class="bouquet-thumb" data-src="data/avd.png" data-index="2" role="tab" aria-selected="false" aria-label="Bó hoa 2">
-            <img src="data/avd.png" alt="Bó hoa 2" loading="lazy"/>
-          </button>
-          <button class="bouquet-thumb" data-src="data/avd-6.png" data-index="3" role="tab" aria-selected="false" aria-label="Bó hoa 3">
-            <img src="data/avd-6.png" alt="Bó hoa 3" loading="lazy"/>
-          </button>
-          <button class="bouquet-thumb" data-src="data/hoa_huong_duong.png" data-index="4" role="tab" aria-selected="false" aria-label="Bó hoa hướng dương">
-            <img src="data/hoa_huong_duong.png" alt="Bó hoa 4" loading="lazy"/>
-          </button>
-          <button class="bouquet-thumb" data-src="data/hoa_tualip.png" data-index="5" role="tab" aria-selected="false" aria-label="Bó hoa tulip">
-            <img src="data/hoa_tualip.png" alt="Bó hoa 5" loading="lazy"/>
-          </button>
+
+          <!-- Footer postcard -->
+          <footer class="postcard-footer">
+            <span class="footer-line"></span>
+            <span class="footer-text">Với tất cả yêu thương &amp; trân trọng</span>
+            <span class="footer-line"></span>
+          </footer>
         </div>
       </div>
 
-      <!-- Khung cá nhân hóa -->
-      <div class="final-message-card">
-        <p class="final-message-label">Gửi đến:</p>
-        <input
-          id="recipient-name"
-          type="text"
-          class="recipient-input"
-          value="Người phụ nữ tuyệt vời"
-          maxlength="60"
-          aria-label="Tên người nhận"
-        />
-        <p class="final-final-msg">
-          🌷 Chúc <span id="recipient-display">Người phụ nữ tuyệt vời</span>
-          một ngày 20/10 thật ý nghĩa, tràn đầy hoa và yêu thương! 🌷
-        </p>
-
-        <div class="final-actions">
-          <button id="btn-restart" class="btn-restart">
-            <span>↻</span> Đọc lại từ đầu
-          </button>
-        </div>
+      <!-- Nút Chia sẻ / Lưu ảnh lớn phía dưới postcard (mobile-friendly) -->
+      <div class="action-bar-bottom">
+        <button id="btn-download-2" class="big-action-btn btn-download-main" type="button">
+          <span class="big-icon">⬇</span>
+          <span>Lưu ảnh</span>
+        </button>
+        <button id="btn-share-2" class="big-action-btn btn-share-main" type="button">
+          <span class="big-icon">↗</span>
+          <span>Chia sẻ</span>
+        </button>
       </div>
 
-      <p class="final-footer">— Với tất cả yêu thương và trân trọng • 20.10.2026 —</p>
+      <button id="btn-restart" class="btn-restart-inline">
+        <span>↻</span> Đọc lại từ đầu
+      </button>
+
+      <p class="final-footer">— 20.10.2026 • Ngày Phụ Nữ Việt Nam —</p>
 
     </div>
   </section>
+
+  <!-- html2canvas để xuất postcard ra PNG -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <script src="js/main.js"></script>
 </body>
