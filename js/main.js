@@ -133,6 +133,138 @@
   }
 
   // ============================================================
+  // 3.5 BOUQUET GALLERY (PNG thật, nút random + thumbnails)
+  // ============================================================
+  function initBouquetGallery() {
+    const stage = document.querySelector('.bouquet-stage');
+    const mainImg = document.getElementById('bouquet-img');
+    const preloader = document.getElementById('bouquet-img-hidden');
+    const loader = document.getElementById('bouquet-loader');
+    const btnShuffle = document.getElementById('btn-shuffle-bouquet');
+    const counterCurrent = document.getElementById('bouquet-current');
+    const counterTotal = document.getElementById('bouquet-total');
+    const thumbs = Array.from(document.querySelectorAll('.bouquet-thumb'));
+
+    if (!stage || !mainImg || !btnShuffle || thumbs.length === 0) return;
+
+    const bouquets = thumbs.map((t) => ({
+      src: t.dataset.src,
+      index: Number(t.dataset.index) || 0,
+      el: t,
+    }));
+
+    if (counterTotal) counterTotal.textContent = String(bouquets.length);
+
+    let currentIndex = 0;
+    let isAnimating = false;
+
+    function preload(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(src);
+        img.onerror = () => resolve(null);
+        img.src = src;
+      });
+    }
+
+    function showLoader(show) {
+      if (!loader) return;
+      loader.classList.toggle('hidden', !show);
+    }
+
+    function updateCounter() {
+      if (counterCurrent) counterCurrent.textContent = String(bouquets[currentIndex].index);
+    }
+
+    function updateActiveThumb() {
+      thumbs.forEach((t, i) => {
+        const active = i === currentIndex;
+        t.classList.toggle('active', active);
+        t.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+    }
+
+    async function setBouquet(nextIndex) {
+      if (isAnimating) return;
+      if (nextIndex === currentIndex) {
+        // Vẫn chạy animation cho dù trùng để có cảm giác "đổi"
+        nextIndex = (nextIndex + 1) % bouquets.length;
+      }
+      const target = bouquets[nextIndex];
+      isAnimating = true;
+      showLoader(true);
+
+      const loaded = await preload(target.src);
+      if (!loaded) {
+        showLoader(false);
+        isAnimating = false;
+        return;
+      }
+
+      // Fade out ảnh hiện tại
+      mainImg.classList.add('is-loading');
+
+      setTimeout(() => {
+        mainImg.src = target.src;
+        mainImg.classList.remove('is-loading', 'swap-in');
+        // Force reflow để animation chạy lại
+        void mainImg.offsetWidth;
+        mainImg.classList.add('swap-in');
+
+        currentIndex = nextIndex;
+        updateActiveThumb();
+        updateCounter();
+        showLoader(false);
+        setTimeout(() => {
+          mainImg.classList.remove('swap-in');
+          isAnimating = false;
+        }, 850);
+      }, 320);
+    }
+
+    function pickRandomDifferent() {
+      if (bouquets.length <= 1) return 0;
+      let i = currentIndex;
+      while (i === currentIndex) {
+        i = Math.floor(Math.random() * bouquets.length);
+      }
+      return i;
+    }
+
+    btnShuffle.addEventListener('click', () => {
+      btnShuffle.classList.remove('is-spinning');
+      void btnShuffle.offsetWidth;
+      btnShuffle.classList.add('is-spinning');
+      setTimeout(() => btnShuffle.classList.remove('is-spinning'), 650);
+      setBouquet(pickRandomDifferent());
+    });
+
+    thumbs.forEach((thumb, i) => {
+      thumb.addEventListener('click', () => setBouquet(i));
+    });
+
+    // Preload tất cả ảnh nền
+    bouquets.forEach((b) => {
+      const img = new Image();
+      img.src = b.src;
+    });
+
+    // Ẩn loader ngay khi ảnh đầu tiên load xong
+    if (mainImg.complete && mainImg.naturalWidth > 0) {
+      showLoader(false);
+    } else {
+      mainImg.addEventListener(
+        'load',
+        () => {
+          showLoader(false);
+          updateCounter();
+        },
+        { once: true }
+      );
+    }
+  }
+
+  // ============================================================
   // 4. STAGE NAVIGATION
   // ============================================================
   function goToStage(stageId) {
@@ -179,6 +311,7 @@
     startPetalRain();
     startSparkleLayer();
     bindRecipientInput();
+    initBouquetGallery();
 
     setTimeout(() => goToStage('stage-2'), 3200);
 
